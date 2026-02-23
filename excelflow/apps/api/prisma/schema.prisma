@@ -1,0 +1,80 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workbook {
+  id             String     @id @default(cuid())
+  name           String
+  classification String     @default("normal")
+  filePath       String
+  sheetCount     Int        @default(1)
+  usedCells      Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  revisions      Revision[]
+  jobs           Job[]
+
+  @@index([createdAt])
+}
+
+model Revision {
+  id          String   @id @default(cuid())
+  workbookId  String
+  workbook    Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  version     Int
+  actions     Json
+  snapshot    Json?
+  source      String   // 'manual' | 'ai' | 'system'
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@unique([workbookId, version])
+  @@index([workbookId, createdAt])
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  workbookId  String
+  workbook    Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  type        String   // 'export_xlsx' | 'export_pdf' | 'sort' | 'paste' | 'ai_operation' | 'summary'
+  status      String   @default("pending")
+  progress    Int      @default(0)
+  result      Json?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workbookId])
+  @@index([status])
+}
+
+model PdfSession {
+  id            String           @id @default(cuid())
+  name          String
+  fileName      String
+  filePath      String
+  extractedText String
+  documentHtml  String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  messages      PdfChatMessage[]
+
+  @@index([createdAt])
+}
+
+model PdfChatMessage {
+  id        String     @id @default(cuid())
+  sessionId String
+  session   PdfSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String     // 'user' | 'assistant'
+  content   String
+  createdAt DateTime   @default(now())
+
+  @@index([sessionId, createdAt])
+}

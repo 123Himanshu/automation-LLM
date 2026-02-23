@@ -1,0 +1,24 @@
+# ─── Root workspace .gitignore ───
+# The ExcelFlow project lives in excelflow/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Test data (should never be committed)
+*.xlsx
+*.csv
+ai_response*.json
+detailes
+sheet_data.json
+
+# Temp files
+*.tmp
+*.bak
+*.log
+node_modules/

@@ -1,0 +1,43 @@
+# ─── Root .dockerignore ───
+
+# Dependencies (reinstalled in Docker)
+**/node_modules
+
+# Build output (rebuilt in Docker)
+**/dist
+**/.next
+**/.turbo
+
+# Environment files (set via Railway env vars)
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Git
+.git
+
+# IDE / Editor
+.vscode
+.idea
+.kiro
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime data
+**/uploads/*
+**/exports/*
+
+# Test & coverage
+**/coverage
+
+# Frontend source (not needed, but keep package.json for workspace resolution)
+excelflow/apps/web/src
+excelflow/apps/web/public
+excelflow/apps/web/.next
+excelflow/apps/web/next.config.ts
+excelflow/apps/web/tailwind.config.ts
+excelflow/apps/web/postcss.config.js
+excelflow/apps/web/tsconfig.json
+excelflow/apps/web/next-env.d.ts
