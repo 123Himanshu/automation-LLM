@@ -22,3 +22,6 @@ sheet_data.json
 *.bak
 *.log
 node_modules/
+
+# Large archives
+*.zip
