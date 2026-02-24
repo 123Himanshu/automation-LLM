@@ -2,6 +2,7 @@
 
 Monorepo for the ExcelFlow web app (`Next.js`) and API (`NestJS + Prisma`).
 
+
 ## Project structure
 
 ```text
