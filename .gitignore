@@ -1,27 +1,62 @@
-# ─── Root workspace .gitignore ───
-# The ExcelFlow project lives in excelflow/
+# Root workspace .gitignore
+# Source lives in excelflow/
 
-# OS files
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build and cache output
+.next/
+**/.next/
+dist/
+**/dist/
+out/
+**/out/
+.turbo/
+**/.turbo/
+coverage/
+**/coverage/
+.cache/
+*.tsbuildinfo
+
+# Runtime/generated files (keep placeholders)
+excelflow/apps/api/uploads/*
+excelflow/apps/api/exports/*
+!excelflow/apps/api/uploads/.gitkeep
+!excelflow/apps/api/exports/.gitkeep
+
+# Local publish artifacts
+publish-source/
+publish-source.zip
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
+*.bak
+
+# Common data dumps and archives
+*.zip
+*.tgz
+*.xlsx
+*.csv
+ai-response*.json
+ai_response*.json
+sheet_data.json
+detailes
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# IDE
-.vscode/
-.idea/
-
-# Test data (should never be committed)
-*.xlsx
-*.csv
-ai_response*.json
-detailes
-sheet_data.json
-
-# Temp files
-*.tmp
-*.bak
-*.log
-node_modules/
-
-# Large archives
-*.zip
