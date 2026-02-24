@@ -285,6 +285,76 @@ export const api = {
 
   deletePdfSession: (id: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/pdf/sessions/${id}`, { method: 'DELETE' }),
+
+  // DOCX Workspace
+
+  uploadDocx: async (
+    file: File,
+  ): Promise<
+    ApiResponse<{ id: string; name: string; fileName: string; pageCount: number; createdAt: string }>
+  > => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const credentials = btoa(
+      `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
+    );
+    const res = await fetch(`${BASE_URL}/api/docx/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${credentials}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: res.statusText }));
+      throw new ApiError(res.status, body.message ?? 'Upload failed');
+    }
+    return (await res.json()) as ApiResponse<{
+      id: string;
+      name: string;
+      fileName: string;
+      pageCount: number;
+      createdAt: string;
+    }>;
+  },
+
+  listDocxSessions: (): Promise<
+    ApiResponse<Array<{ id: string; name: string; fileName: string; createdAt: string; updatedAt: string }>>
+  > => request('/api/docx/sessions'),
+
+  getDocxSession: (id: string): Promise<ApiResponse<unknown>> =>
+    request(`/api/docx/sessions/${id}`),
+
+  regenerateDocx: (
+    id: string,
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      replacementsApplied?: number;
+      skippedInsertions?: number;
+      message?: string;
+    }>
+  > =>
+    request(`/api/docx/sessions/${id}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  updateDocxContent: (id: string, html: string): Promise<ApiResponse<{ success: boolean }>> =>
+    request(`/api/docx/sessions/${id}/content`, {
+      method: 'PATCH',
+      body: JSON.stringify({ html }),
+    }),
+
+  replaceTextInDocx: (
+    id: string,
+    replacements: Array<{ find: string; replace: string }>,
+  ): Promise<ApiResponse<{ success: boolean; replacementsApplied: number }>> =>
+    request(`/api/docx/sessions/${id}/replace-text`, {
+      method: 'POST',
+      body: JSON.stringify({ replacements }),
+    }),
+
+  deleteDocxSession: (id: string): Promise<ApiResponse<{ success: boolean }>> =>
+    request(`/api/docx/sessions/${id}`, { method: 'DELETE' }),
 };
 
 export { ApiError };

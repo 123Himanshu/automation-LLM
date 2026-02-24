@@ -316,6 +316,12 @@ export class PdfService {
 
   async listSessions() {
     return this.prisma['pdfSession'].findMany({
+      where: {
+        OR: [
+          { fileName: { endsWith: '.pdf' } },
+          { fileName: { endsWith: '.PDF' } },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -337,7 +343,7 @@ export class PdfService {
       },
     });
 
-    if (!session) throw new NotFoundException('PDF session not found');
+    if (!session || !/\.pdf$/i.test(session.fileName)) throw new NotFoundException('PDF session not found');
     return session;
   }
 

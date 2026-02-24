@@ -128,6 +128,15 @@ export default function HomePage() {
             <FileText className="mr-2 h-4 w-4" />
             PDF AI Workspace
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/docx')}
+            aria-label="Open DOCX AI Workspace"
+            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            DOCX AI Workspace
+          </Button>
         </div>
 
         {workbooks.length > 0 && (

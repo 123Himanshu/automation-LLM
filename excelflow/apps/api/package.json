@@ -26,6 +26,8 @@
     "exceljs": "^4.4.0",
     "fastify": "^4.28.0",
     "hyperformula": "^2.7.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.11.0",
     "openai": "^4.104.0",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.58.2",

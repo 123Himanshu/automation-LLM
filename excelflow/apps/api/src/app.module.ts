@@ -11,6 +11,7 @@ import { SummaryModule } from './modules/summary/summary.module';
 import { AIModule } from './modules/ai/ai.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { PdfModule } from './modules/pdf/pdf.module';
+import { DocxModule } from './modules/docx/docx.module';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { PdfModule } from './modules/pdf/pdf.module';
     AIModule,
     CleanupModule,
     PdfModule,
+    DocxModule,
   ],
 })
 export class AppModule { }
-
