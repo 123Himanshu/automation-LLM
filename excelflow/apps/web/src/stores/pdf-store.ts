@@ -282,8 +282,9 @@ export const usePdfStore = create<PdfState>()(
         });
       } catch (err) {
         console.error('Regenerate failed:', err);
+        const message = err instanceof Error ? err.message : 'Failed to regenerate PDF.';
         set((state) => {
-          state.lastRegenerateMessage = 'Failed to regenerate PDF.';
+          state.lastRegenerateMessage = message;
         });
       } finally {
         set((state) => {

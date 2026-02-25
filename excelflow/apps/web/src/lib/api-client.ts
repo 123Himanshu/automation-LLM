@@ -57,18 +57,36 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
   schema?: z.ZodTypeAny,
+  timeoutMs?: number,
 ): Promise<T> {
   const credentials = btoa(
     `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
   );
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${credentials}`,
-      ...options.headers,
-    },
-  });
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timeoutId = timeoutMs
+    ? globalThis.setTimeout(() => controller?.abort(), timeoutMs)
+    : undefined;
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      signal: controller?.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${credentials}`,
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId);
+    if ((err as { name?: string })?.name === 'AbortError') {
+      throw new ApiError(408, 'Request timed out. Please try again.');
+    }
+    throw err;
+  } finally {
+    if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
@@ -275,13 +293,23 @@ export const api = {
       message?: string;
     }>
   > =>
-    request(`/api/pdf/sessions/${id}/regenerate`, { method: 'POST', body: JSON.stringify({}) }),
+    request(
+      `/api/pdf/sessions/${id}/regenerate`,
+      { method: 'POST', body: JSON.stringify({}) },
+      undefined,
+      45_000,
+    ),
 
   updatePdfContent: (id: string, html: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/pdf/sessions/${id}/content`, { method: 'PATCH', body: JSON.stringify({ html }) }),
 
   replaceTextInPdf: (id: string, replacements: Array<{ find: string; replace: string }>): Promise<ApiResponse<{ success: boolean; replacementsApplied: number }>> =>
-    request(`/api/pdf/sessions/${id}/replace-text`, { method: 'POST', body: JSON.stringify({ replacements }) }),
+    request(
+      `/api/pdf/sessions/${id}/replace-text`,
+      { method: 'POST', body: JSON.stringify({ replacements }) },
+      undefined,
+      45_000,
+    ),
 
   deletePdfSession: (id: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/pdf/sessions/${id}`, { method: 'DELETE' }),
@@ -336,7 +364,7 @@ export const api = {
     request(`/api/docx/sessions/${id}/regenerate`, {
       method: 'POST',
       body: JSON.stringify({}),
-    }),
+    }, undefined, 45_000),
 
   updateDocxContent: (id: string, html: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/docx/sessions/${id}/content`, {
@@ -351,7 +379,7 @@ export const api = {
     request(`/api/docx/sessions/${id}/replace-text`, {
       method: 'POST',
       body: JSON.stringify({ replacements }),
-    }),
+    }, undefined, 45_000),
 
   deleteDocxSession: (id: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/docx/sessions/${id}`, { method: 'DELETE' }),

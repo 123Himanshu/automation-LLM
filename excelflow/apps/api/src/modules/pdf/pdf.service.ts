@@ -29,6 +29,37 @@ interface DiffOp {
   value: string;
 }
 
+interface PdfTextElement {
+  text: string;
+  x: number;
+  y: number;
+  w: number;
+  fontSize: number;
+  isBold: boolean;
+  isItalic: boolean;
+  page: number;
+}
+
+interface PdfPageDimension {
+  width: number;
+  height: number;
+}
+
+interface ParsedPdfData {
+  elements: PdfTextElement[];
+  numpages: number;
+  pageDimensions: PdfPageDimension[];
+}
+
+interface OverlayTextLine {
+  page: number;
+  y: number;
+  xMin: number;
+  xMax: number;
+  fontSize: number;
+  text: string;
+}
+
 @Injectable()
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
@@ -75,41 +106,60 @@ export class PdfService {
   private async extractWithPdf2Json(
     filePath: string,
   ): Promise<{ extractedText: string; documentHtml: string; numpages: number }> {
+    const parsed = await this.parsePdfWithPdf2Json(filePath);
+    const documentHtml = this.elementsToHtml(parsed.elements);
+    const extractedText = this.htmlToPlainText(documentHtml);
+    return { extractedText, documentHtml, numpages: parsed.numpages };
+  }
+
+  private async parsePdfWithPdf2Json(filePath: string): Promise<ParsedPdfData> {
     const PDFParser = (await import('pdf2json')).default;
 
     return new Promise((resolve, reject) => {
       const pdfParser = new PDFParser(null, true);
+      const parseTimeoutMs = 20_000;
+      let settled = false;
+
+      const settleResolve = (value: ParsedPdfData) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      };
+      const settleReject = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      };
+
+      const timer = setTimeout(() => {
+        settleReject(new Error(`PDF parse timed out after ${parseTimeoutMs}ms`));
+      }, parseTimeoutMs);
 
       pdfParser.on('pdfParser_dataError', (errData: unknown) => {
         this.logger.error('pdf2json error', errData as object);
-        reject(new Error('Failed to parse PDF'));
+        settleReject(new Error('Failed to parse PDF'));
       });
 
       pdfParser.on('pdfParser_dataReady', (pdfData: any) => {
         try {
-          const pages = pdfData.Pages || [];
-          const numpages = pages.length;
-
-          interface TextElement {
-            text: string;
-            x: number;
-            y: number;
-            fontSize: number;
-            isBold: boolean;
-            isItalic: boolean;
-            page: number;
-          }
-
-          const allElements: TextElement[] = [];
+          const pages = Array.isArray(pdfData?.Pages) ? pdfData.Pages : [];
+          const elements: PdfTextElement[] = [];
+          const pageDimensions: PdfPageDimension[] = [];
 
           for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
             const page = pages[pageIdx];
-            const texts = page.Texts || [];
+            pageDimensions.push({
+              width: Number(page?.Width || 0),
+              height: Number(page?.Height || 0),
+            });
 
+            const texts = Array.isArray(page?.Texts) ? page.Texts : [];
             for (const textItem of texts) {
-              const runs = textItem.R || [];
+              const runs = Array.isArray(textItem?.R) ? textItem.R : [];
               for (const run of runs) {
-                const encoded = String(run.T || '');
+                const encoded = String(run?.T || '');
                 let decoded = encoded;
                 try {
                   decoded = decodeURIComponent(encoded);
@@ -118,15 +168,16 @@ export class PdfService {
                 }
                 if (!decoded.trim()) continue;
 
-                const fontSize = run.TS ? Number(run.TS[1]) : 12;
-                const fontStyle = run.TS ? Number(run.TS[2]) : 0;
+                const fontSize = run?.TS ? Number(run.TS[1]) : 12;
+                const fontStyle = run?.TS ? Number(run.TS[2]) : 0;
                 const isBold = fontStyle === 1 || fontStyle === 3;
                 const isItalic = fontStyle === 2 || fontStyle === 3;
 
-                allElements.push({
+                elements.push({
                   text: decoded,
-                  x: Number(textItem.x || 0),
-                  y: Number(textItem.y || 0),
+                  x: Number(textItem?.x || 0),
+                  y: Number(textItem?.y || 0),
+                  w: Number(textItem?.w || 0),
                   fontSize,
                   isBold,
                   isItalic,
@@ -136,15 +187,23 @@ export class PdfService {
             }
           }
 
-          const documentHtml = this.elementsToHtml(allElements);
-          const extractedText = this.htmlToPlainText(documentHtml);
-          resolve({ extractedText, documentHtml, numpages });
+          settleResolve({
+            elements,
+            numpages: pages.length,
+            pageDimensions,
+          });
         } catch (err) {
-          reject(err);
+          const message = err instanceof Error ? err.message : 'unknown parse error';
+          settleReject(new Error(message));
         }
       });
 
-      pdfParser.parseBuffer(Buffer.from(fs.readFileSync(filePath)));
+      try {
+        pdfParser.parseBuffer(Buffer.from(fs.readFileSync(filePath)));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'unknown parse error';
+        settleReject(new Error(message));
+      }
     });
   }
 
@@ -465,6 +524,13 @@ export class PdfService {
     return {
       success: true,
       replacementsApplied: applyResult.applied,
+      mode: applyResult.mode,
+      message:
+        applyResult.applied === 0
+          ? 'No matching text fragments were found. No changes applied.'
+          : applyResult.mode === 'overlay'
+            ? `Applied ${applyResult.applied} change(s) using overlay fallback for complex font encoding.`
+            : `Applied ${applyResult.applied} style-preserving change(s).`,
     };
   }
 
@@ -476,15 +542,39 @@ export class PdfService {
     const sourceText = session.extractedText || '';
     const targetText = this.htmlToPlainText(session.documentHtml || '');
     const diffPlan = this.buildLineReplacementSpecs(sourceText, targetText);
+    const appendCandidates = this.extractAppendCandidates(sourceText, targetText, diffPlan.insertedLines);
+    const changed = this.normalizeLine(sourceText) !== this.normalizeLine(targetText);
 
     if (diffPlan.replacements.length === 0) {
-      const changed = this.normalizeLine(sourceText) !== this.normalizeLine(targetText);
+      if (appendCandidates.length > 0) {
+        const appendResult = await this.appendInsertedLinesToPdfSession(
+          sessionId,
+          session.filePath,
+          appendCandidates,
+          'regenerated',
+          { extractedText: targetText, documentHtml: session.documentHtml || '' },
+        );
+
+        if (appendResult.applied > 0) {
+          const truncatedMessage = appendResult.truncated
+            ? ' Some additional inserted lines were omitted due to size limits.'
+            : '';
+          return {
+            success: true,
+            replacementsApplied: appendResult.applied,
+            mode: 'append',
+            skippedInsertions: appendResult.truncated ? diffPlan.skippedInsertions : 0,
+            message: `Applied ${appendResult.applied} inserted line(s) by appending content to the end of the PDF.${truncatedMessage}`,
+          };
+        }
+      }
+
       return {
         success: true,
         replacementsApplied: 0,
         skippedInsertions: diffPlan.skippedInsertions,
         message: changed
-          ? 'No safe replacements detected. Insert-only changes were skipped to preserve original formatting.'
+          ? 'Changes were detected, but this PDF structure could not be mapped for replacement.'
           : 'No changes detected.',
       };
     }
@@ -500,13 +590,58 @@ export class PdfService {
       { extractedText: nextExtractedText, documentHtml: nextDocumentHtml },
     );
 
+    if (appendCandidates.length > 0) {
+      const appendResult = await this.appendInsertedLinesToPdfSession(
+        sessionId,
+        applyResult.filePath,
+        appendCandidates,
+        'regenerated',
+        { extractedText: targetText, documentHtml: nextDocumentHtml },
+      );
+
+      if (appendResult.applied > 0) {
+        const truncatedMessage = appendResult.truncated
+          ? ' Some additional inserted lines were omitted due to size limits.'
+          : '';
+
+        if (applyResult.applied > 0) {
+          const baseMessage =
+            applyResult.mode === 'overlay'
+              ? `Applied ${applyResult.applied} change(s) using overlay fallback for complex font encoding.`
+              : `Applied ${applyResult.applied} style-preserving change(s).`;
+          return {
+            success: true,
+            replacementsApplied: applyResult.applied + appendResult.applied,
+            mode: 'append',
+            skippedInsertions: appendResult.truncated ? diffPlan.skippedInsertions : 0,
+            message:
+              `${baseMessage} Added ${appendResult.applied} inserted line(s) at the end of the PDF.` +
+              truncatedMessage,
+          };
+        }
+
+        return {
+          success: true,
+          replacementsApplied: appendResult.applied,
+          mode: 'append',
+          skippedInsertions: appendResult.truncated ? diffPlan.skippedInsertions : 0,
+          message: `Applied ${appendResult.applied} inserted line(s) by appending content to the end of the PDF.${truncatedMessage}`,
+        };
+      }
+    }
+
     return {
       success: true,
       replacementsApplied: applyResult.applied,
+      mode: applyResult.mode,
       skippedInsertions: diffPlan.skippedInsertions,
       message:
         applyResult.applied === 0
-          ? 'No matching text fragments were found in the PDF stream. No changes applied to preserve original formatting.'
+          ? 'No matching text fragments were found in this PDF. No changes applied.'
+          : applyResult.mode === 'overlay'
+            ? diffPlan.skippedInsertions > 0
+              ? `Applied ${applyResult.applied} change(s) using overlay fallback for complex font encoding. ${diffPlan.skippedInsertions} insertion block(s) were skipped.`
+              : `Applied ${applyResult.applied} change(s) using overlay fallback for complex font encoding.`
           : diffPlan.skippedInsertions > 0
             ? `Applied ${applyResult.applied} style-preserving change(s). ${diffPlan.skippedInsertions} insertion block(s) were skipped to preserve original formatting.`
             : `Applied ${applyResult.applied} style-preserving change(s).`,
@@ -545,11 +680,34 @@ export class PdfService {
     replacements: ReplacementSpec[],
     filePrefix: 'modified' | 'regenerated',
     nextSessionState: { extractedText: string; documentHtml: string },
-  ): Promise<{ applied: number; filePath: string }> {
-    const pdfResult = await this.applyReplacementsToPdfFile(currentFilePath, replacements, filePrefix);
+  ): Promise<{ applied: number; filePath: string; mode: 'none' | 'native' | 'overlay' }> {
+    let pdfResult = await this.applyReplacementsToPdfFile(currentFilePath, replacements, filePrefix);
+    let mode: 'none' | 'native' | 'overlay' = pdfResult.changed ? 'native' : 'none';
+
+    if (!pdfResult.changed && replacements.length > 0) {
+      if (this.shouldUseOverlayFallback(pdfResult.literalTokens, pdfResult.hexTokens)) {
+        const fallbackResult = await this.applyOverlayReplacementsToPdfFile(
+          currentFilePath,
+          replacements,
+          filePrefix,
+        );
+        if (fallbackResult.changed) {
+          pdfResult = {
+            ...fallbackResult,
+            literalTokens: pdfResult.literalTokens,
+            hexTokens: pdfResult.hexTokens,
+          };
+          mode = 'overlay';
+        }
+      } else {
+        this.logger.debug(
+          `Overlay fallback skipped (literalTokens=${pdfResult.literalTokens}, hexTokens=${pdfResult.hexTokens})`,
+        );
+      }
+    }
 
     if (!pdfResult.changed) {
-      return { applied: 0, filePath: currentFilePath };
+      return { applied: 0, filePath: currentFilePath, mode: 'none' };
     }
 
     await this.prisma['pdfSession'].update({
@@ -573,6 +731,7 @@ export class PdfService {
     return {
       applied: pdfResult.applied,
       filePath: pdfResult.filePath,
+      mode,
     };
   }
 
@@ -580,7 +739,7 @@ export class PdfService {
     sourceFilePath: string,
     specs: ReplacementSpec[],
     filePrefix: 'modified' | 'regenerated',
-  ): Promise<{ changed: boolean; applied: number; filePath: string }> {
+  ): Promise<{ changed: boolean; applied: number; filePath: string; literalTokens: number; hexTokens: number }> {
     const { PDFDocument, PDFName, PDFArray } = await import('pdf-lib');
     const existingPdfBytes = fs.readFileSync(sourceFilePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
@@ -595,6 +754,9 @@ export class PdfService {
 
     let hasAnyStreamChange = false;
     const literalRegex = /\((?:\\.|[^\\()])*\)/g;
+    const hexRegex = /<(?:[0-9A-Fa-f\s]{2,})>/g;
+    let literalTokens = 0;
+    let hexTokens = 0;
 
     for (const page of pages) {
       const contentsRef = (page as any).node.get(PDFName.of('Contents'));
@@ -629,6 +791,8 @@ export class PdfService {
         }
 
         const streamContent = new TextDecoder('latin1').decode(decodedBytes);
+        literalTokens += streamContent.match(literalRegex)?.length ?? 0;
+        hexTokens += streamContent.match(hexRegex)?.length ?? 0;
         let streamModified = false;
 
         const updatedStreamContent = streamContent.replace(literalRegex, (token) => {
@@ -668,7 +832,7 @@ export class PdfService {
 
     const applied = states.reduce((sum, state) => sum + state.applied, 0);
     if (!hasAnyStreamChange || applied === 0) {
-      return { changed: false, applied: 0, filePath: sourceFilePath };
+      return { changed: false, applied: 0, filePath: sourceFilePath, literalTokens, hexTokens };
     }
 
     const modifiedBytes = await pdfDoc.save();
@@ -680,7 +844,342 @@ export class PdfService {
       changed: true,
       applied,
       filePath: newFilePath,
+      literalTokens,
+      hexTokens,
     };
+  }
+
+  private async applyOverlayReplacementsToPdfFile(
+    sourceFilePath: string,
+    specs: ReplacementSpec[],
+    filePrefix: 'modified' | 'regenerated',
+  ): Promise<{ changed: boolean; applied: number; filePath: string }> {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const existingPdfBytes = fs.readFileSync(sourceFilePath);
+    const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+    const pages = pdfDoc.getPages();
+    if (pages.length === 0) {
+      return { changed: false, applied: 0, filePath: sourceFilePath };
+    }
+
+    let parsed: ParsedPdfData;
+    try {
+      parsed = await this.parsePdfWithPdf2Json(sourceFilePath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'unknown parse error';
+      this.logger.warn(`Overlay fallback parse failed: ${message}`);
+      return { changed: false, applied: 0, filePath: sourceFilePath };
+    }
+
+    if (parsed.elements.length === 0) {
+      return { changed: false, applied: 0, filePath: sourceFilePath };
+    }
+
+    const overlayLines = this.groupElementsIntoOverlayLines(parsed.elements);
+    if (overlayLines.length === 0) {
+      return { changed: false, applied: 0, filePath: sourceFilePath };
+    }
+
+    const drawFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const states: ReplacementRuntimeState[] = specs.map((spec) => ({
+      find: spec.find,
+      replace: spec.replace,
+      remaining: spec.maxOccurrences ?? Number.POSITIVE_INFINITY,
+      applied: 0,
+    }));
+
+    let hasChanges = false;
+
+    for (const line of overlayLines) {
+      if (line.page < 0 || line.page >= pages.length) continue;
+
+      const originalText = this.normalizeLine(line.text);
+      if (!originalText) continue;
+
+      let updatedText = originalText;
+      let lineApplied = 0;
+
+      for (const state of states) {
+        if (state.remaining <= 0) continue;
+        const maxForLine = Number.isFinite(state.remaining) ? state.remaining : Number.MAX_SAFE_INTEGER;
+        const replaced = this.replaceTextLeftToRight(updatedText, state.find, state.replace, maxForLine);
+        if (replaced.count > 0) {
+          updatedText = this.normalizeLine(replaced.output);
+          lineApplied += replaced.count;
+          state.applied += replaced.count;
+          if (Number.isFinite(state.remaining)) {
+            state.remaining -= replaced.count;
+          }
+        }
+      }
+
+      if (lineApplied === 0 || updatedText === originalText) continue;
+
+      const page = pages[line.page]!;
+      const pageMeta = parsed.pageDimensions[line.page];
+      const xScale =
+        pageMeta && pageMeta.width > 0 ? page.getWidth() / pageMeta.width : 16;
+      const yScale =
+        pageMeta && pageMeta.height > 0 ? page.getHeight() / pageMeta.height : 16;
+
+      const x = line.xMin * xScale;
+      const fontSize = Math.max(7, Math.min(24, line.fontSize || 11));
+      const baselineY = page.getHeight() - line.y * yScale;
+
+      const oldWidth = Math.max(18, (line.xMax - line.xMin) * xScale);
+      const newWidth = drawFont.widthOfTextAtSize(updatedText, fontSize);
+      const boxWidth = Math.max(oldWidth, newWidth) + 4;
+      const boxHeight = fontSize * 1.35;
+
+      page.drawRectangle({
+        x: Math.max(0, x - 1),
+        y: Math.max(0, baselineY - 1),
+        width: Math.min(page.getWidth(), boxWidth),
+        height: Math.min(page.getHeight(), boxHeight),
+        color: rgb(1, 1, 1),
+      });
+
+      page.drawText(updatedText, {
+        x: Math.max(0, x),
+        y: Math.max(0, baselineY + fontSize * 0.08),
+        size: fontSize,
+        font: drawFont,
+        color: rgb(0, 0, 0),
+      });
+
+      hasChanges = true;
+    }
+
+    const applied = states.reduce((sum, state) => sum + state.applied, 0);
+    if (!hasChanges || applied === 0) {
+      return { changed: false, applied: 0, filePath: sourceFilePath };
+    }
+
+    const modifiedBytes = await pdfDoc.save();
+    const newFileName = `${filePrefix}-overlay-${Date.now()}.pdf`;
+    const newFilePath = path.join(this.uploadsDir, newFileName);
+    fs.writeFileSync(newFilePath, modifiedBytes);
+
+    this.logger.log(`Applied overlay fallback replacements: ${applied}`);
+
+    return {
+      changed: true,
+      applied,
+      filePath: newFilePath,
+    };
+  }
+
+  private async appendInsertedLinesToPdfSession(
+    sessionId: string,
+    currentFilePath: string,
+    insertedLines: string[],
+    filePrefix: 'modified' | 'regenerated',
+    nextSessionState: { extractedText: string; documentHtml: string },
+  ): Promise<{ applied: number; filePath: string; truncated: boolean }> {
+    const appendResult = await this.appendInsertedLinesToPdfFile(currentFilePath, insertedLines, filePrefix);
+    if (!appendResult.changed) {
+      return { applied: 0, filePath: currentFilePath, truncated: appendResult.truncated };
+    }
+
+    await this.prisma['pdfSession'].update({
+      where: { id: sessionId },
+      data: {
+        filePath: appendResult.filePath,
+        extractedText: nextSessionState.extractedText,
+        documentHtml: nextSessionState.documentHtml,
+      },
+    });
+
+    if (currentFilePath !== appendResult.filePath && fs.existsSync(currentFilePath)) {
+      try {
+        fs.unlinkSync(currentFilePath);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'unknown cleanup error';
+        this.logger.warn(`Failed to remove old PDF ${currentFilePath}: ${message}`);
+      }
+    }
+
+    return {
+      applied: appendResult.applied,
+      filePath: appendResult.filePath,
+      truncated: appendResult.truncated,
+    };
+  }
+
+  private async appendInsertedLinesToPdfFile(
+    sourceFilePath: string,
+    insertedLines: string[],
+    filePrefix: 'modified' | 'regenerated',
+  ): Promise<{ changed: boolean; applied: number; filePath: string; truncated: boolean }> {
+    const meaningfulLines = insertedLines
+      .map((line) => this.normalizeLine(line))
+      .filter((line) => line.length > 0);
+
+    if (meaningfulLines.length === 0) {
+      return { changed: false, applied: 0, filePath: sourceFilePath, truncated: false };
+    }
+
+    const maxLines = 120;
+    const limitedLines = meaningfulLines.slice(0, maxLines);
+    const truncated = meaningfulLines.length > maxLines;
+
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const existingPdfBytes = fs.readFileSync(sourceFilePath);
+    const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+    const existingPages = pdfDoc.getPages();
+
+    const baseWidth = existingPages.length > 0 ? existingPages[existingPages.length - 1]!.getWidth() : 612;
+    const baseHeight = existingPages.length > 0 ? existingPages[existingPages.length - 1]!.getHeight() : 792;
+
+    const bodyFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const headingFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const bodyFontSize = 11;
+    const bodyLineHeight = 15;
+    const marginX = 48;
+    const topY = baseHeight - 56;
+    const bottomY = 48;
+    const maxWidth = baseWidth - marginX * 2;
+
+    let page = pdfDoc.addPage([baseWidth, baseHeight]);
+    let y = topY;
+
+    for (const line of limitedLines) {
+      const headingLike = this.looksLikeHeadingLine(line);
+      const font = headingLike ? headingFont : bodyFont;
+      const fontSize = headingLike ? 15 : bodyFontSize;
+      const lineHeight = headingLike ? 20 : bodyLineHeight;
+
+      const wrapped = this.wrapTextToWidth(line, font, fontSize, maxWidth);
+      for (const row of wrapped) {
+        if (y < bottomY + lineHeight) {
+          page = pdfDoc.addPage([baseWidth, baseHeight]);
+          y = topY;
+        }
+
+        page.drawText(row, {
+          x: marginX,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        y -= lineHeight;
+      }
+
+      y -= headingLike ? 8 : 3;
+    }
+
+    const modifiedBytes = await pdfDoc.save();
+    const newFileName = `${filePrefix}-append-${Date.now()}.pdf`;
+    const newFilePath = path.join(this.uploadsDir, newFileName);
+    fs.writeFileSync(newFilePath, modifiedBytes);
+
+    return {
+      changed: true,
+      applied: limitedLines.length,
+      filePath: newFilePath,
+      truncated,
+    };
+  }
+
+  private wrapTextToWidth(
+    text: string,
+    font: { widthOfTextAtSize: (value: string, size: number) => number },
+    fontSize: number,
+    maxWidth: number,
+  ): string[] {
+    const line = this.normalizeLine(text);
+    if (!line) return [];
+
+    const words = line.split(' ');
+    const rows: string[] = [];
+    let current = '';
+
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+        current = candidate;
+      } else {
+        if (current) rows.push(current);
+        current = word;
+      }
+    }
+    if (current) rows.push(current);
+
+    return rows.length > 0 ? rows : [line];
+  }
+
+  private looksLikeHeadingLine(line: string): boolean {
+    const normalized = this.normalizeLine(line);
+    if (!normalized) return false;
+    if (normalized.length > 70) return false;
+    if (/[.!?]/.test(normalized)) return false;
+    return /^[A-Z][A-Za-z0-9 &()\-/:]{2,}$/.test(normalized);
+  }
+
+  private groupElementsIntoOverlayLines(elements: PdfTextElement[]): OverlayTextLine[] {
+    if (elements.length === 0) return [];
+
+    const yThreshold = 0.3;
+    const buckets: Array<{
+      page: number;
+      y: number;
+      parts: Array<{ text: string; x: number; w: number; fontSize: number }>;
+    }> = [];
+
+    for (const element of elements) {
+      const existing = buckets.find(
+        (entry) => entry.page === element.page && Math.abs(entry.y - element.y) < yThreshold,
+      );
+      if (existing) {
+        existing.parts.push({
+          text: element.text,
+          x: element.x,
+          w: element.w,
+          fontSize: element.fontSize,
+        });
+      } else {
+        buckets.push({
+          page: element.page,
+          y: element.y,
+          parts: [
+            {
+              text: element.text,
+              x: element.x,
+              w: element.w,
+              fontSize: element.fontSize,
+            },
+          ],
+        });
+      }
+    }
+
+    buckets.sort((a, b) => a.page - b.page || a.y - b.y);
+    for (const line of buckets) {
+      line.parts.sort((a, b) => a.x - b.x);
+    }
+
+    return buckets
+      .map((line) => {
+        const normalizedText = this.normalizeLine(line.parts.map((part) => part.text).join(' '));
+        if (!normalizedText) return null;
+
+        const xMin = Math.min(...line.parts.map((part) => part.x));
+        const xMax = Math.max(
+          ...line.parts.map((part) => part.x + Math.max(part.w, part.text.length * 0.25)),
+        );
+        const fontSize = Math.max(...line.parts.map((part) => part.fontSize || 11));
+
+        return {
+          page: line.page,
+          y: line.y,
+          xMin,
+          xMax,
+          fontSize,
+          text: normalizedText,
+        } satisfies OverlayTextLine;
+      })
+      .filter((line): line is OverlayTextLine => line !== null);
   }
 
   private getStreamFilterNames(stream: any, PDFNameClass: any, PDFArrayClass: any): string[] {
@@ -1001,22 +1500,24 @@ export class PdfService {
       .trim();
   }
 
+  private shouldUseOverlayFallback(literalTokens: number, hexTokens: number): boolean {
+    if (hexTokens <= 0) return false;
+    if (literalTokens === 0) return true;
+    // Only treat as complex when hex tokens strongly dominate.
+    return hexTokens >= 20 && hexTokens > literalTokens * 2;
+  }
+
   private buildLineReplacementSpecs(
     sourceText: string,
     targetText: string,
-  ): { replacements: ReplacementSpec[]; skippedInsertions: number } {
-    const sourceLines = sourceText
-      .split(/\r?\n/)
-      .map((line) => this.normalizeLine(line))
-      .filter((line) => line.length > 0);
-    const targetLines = targetText
-      .split(/\r?\n/)
-      .map((line) => this.normalizeLine(line))
-      .filter((line) => line.length > 0);
+  ): { replacements: ReplacementSpec[]; skippedInsertions: number; insertedLines: string[] } {
+    const sourceLines = this.toNormalizedLines(sourceText);
+    const targetLines = this.toNormalizedLines(targetText);
 
     const ops = this.diffLines(sourceLines, targetLines);
     const replacements: ReplacementSpec[] = [];
     let skippedInsertions = 0;
+    const insertedLines: string[] = [];
 
     let pendingDeletes: string[] = [];
     let pendingInserts: string[] = [];
@@ -1041,7 +1542,31 @@ export class PdfService {
       }
 
       if (pendingInserts.length > paired) {
-        skippedInsertions += pendingInserts.length - paired;
+        const remainingInserts = pendingInserts.slice(paired);
+        const normalizedInsertLines = remainingInserts
+          .map((line) => this.normalizeLine(line))
+          .filter((line) => line.length > 0);
+        const insertBlock = this.normalizeLine(remainingInserts.join(' '));
+        let anchored = false;
+
+        if (insertBlock) {
+          if (pendingDeletes.length > 0) {
+            const anchorDelete = this.normalizeLine(pendingDeletes[pendingDeletes.length - 1] || '');
+            if (anchorDelete) {
+              replacements.push({
+                find: anchorDelete,
+                replace: `${anchorDelete} ${insertBlock}`,
+                maxOccurrences: 1,
+              });
+              anchored = true;
+            }
+          }
+        }
+
+        if (!anchored) {
+          insertedLines.push(...normalizedInsertLines);
+          skippedInsertions += remainingInserts.length;
+        }
       }
 
       pendingDeletes = [];
@@ -1062,7 +1587,109 @@ export class PdfService {
     return {
       replacements: this.normalizeReplacementSpecs(replacements),
       skippedInsertions,
+      insertedLines: insertedLines.filter((line, idx) => idx === 0 || line !== insertedLines[idx - 1]),
     };
+  }
+
+  private extractAppendCandidates(
+    sourceText: string,
+    targetText: string,
+    fallbackInsertedLines: string[],
+  ): string[] {
+    const sourceLines = this.toNormalizedLines(sourceText);
+    const targetLines = this.toNormalizedLines(targetText);
+
+    const sourceCounts = this.countLineFrequency(sourceLines);
+    const targetCounts = this.countLineFrequency(targetLines);
+
+    const byTailAnchor = this.extractTailByAnchor(sourceLines, targetLines);
+    const bySubsequence = byTailAnchor.length > 0 ? [] : this.extractTailBySubsequence(sourceLines, targetLines);
+    const raw =
+      byTailAnchor.length > 0
+        ? byTailAnchor
+        : bySubsequence.length > 0
+          ? bySubsequence
+          : fallbackInsertedLines.map((line) => this.normalizeLine(line)).filter((line) => line.length > 0);
+
+    const result: string[] = [];
+    const seen = new Set<string>();
+    for (const line of raw) {
+      const normalized = this.normalizeLine(line);
+      if (!normalized || seen.has(normalized)) continue;
+
+      const srcCount = sourceCounts.get(normalized) || 0;
+      const tgtCount = targetCounts.get(normalized) || 0;
+      if (tgtCount <= srcCount) continue;
+
+      seen.add(normalized);
+      result.push(normalized);
+    }
+
+    return result;
+  }
+
+  private extractTailByAnchor(sourceLines: string[], targetLines: string[]): string[] {
+    if (sourceLines.length === 0 || targetLines.length === 0) return [];
+    const maxWindow = Math.min(8, sourceLines.length, targetLines.length);
+
+    for (let window = maxWindow; window >= 2; window--) {
+      const tail = sourceLines.slice(sourceLines.length - window);
+      const start = this.findLastSubsequenceIndex(targetLines, tail);
+      if (start === -1) continue;
+      return targetLines.slice(start + window);
+    }
+
+    return [];
+  }
+
+  private extractTailBySubsequence(sourceLines: string[], targetLines: string[]): string[] {
+    if (sourceLines.length === 0 || targetLines.length === 0) return [];
+
+    let src = 0;
+    let lastMatchTarget = -1;
+    for (let tgt = 0; tgt < targetLines.length && src < sourceLines.length; tgt++) {
+      if (targetLines[tgt] === sourceLines[src]) {
+        lastMatchTarget = tgt;
+        src += 1;
+      }
+    }
+
+    const minMatches = Math.max(1, Math.floor(sourceLines.length * 0.7));
+    if (src < minMatches) return [];
+
+    return targetLines.slice(lastMatchTarget + 1);
+  }
+
+  private findLastSubsequenceIndex(haystack: string[], needle: string[]): number {
+    if (needle.length === 0 || haystack.length < needle.length) return -1;
+
+    for (let i = haystack.length - needle.length; i >= 0; i--) {
+      let matched = true;
+      for (let j = 0; j < needle.length; j++) {
+        if (haystack[i + j] !== needle[j]) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) return i;
+    }
+
+    return -1;
+  }
+
+  private countLineFrequency(lines: string[]): Map<string, number> {
+    const freq = new Map<string, number>();
+    for (const line of lines) {
+      freq.set(line, (freq.get(line) || 0) + 1);
+    }
+    return freq;
+  }
+
+  private toNormalizedLines(text: string): string[] {
+    return text
+      .split(/\r?\n/)
+      .map((line) => this.normalizeLine(line))
+      .filter((line) => line.length > 0);
   }
 
   private buildLineReplacementCandidates(sourceLine: string, targetLine: string): ReplacementSpec[] {
