@@ -39,7 +39,7 @@ export class AISummaryService implements OnApplicationBootstrap {
       );
       this.logger.log('LLM summary function wired into SummaryService');
     } else {
-      this.logger.warn('OpenAI not available — LLM summary disabled');
+      this.logger.warn('LLM provider not available — LLM summary disabled');
     }
 
     // Wire the audit function into the SummaryService

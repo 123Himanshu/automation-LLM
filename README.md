@@ -40,7 +40,10 @@ cp apps/api/.env.example apps/api/.env
 - `DATABASE_URL`
 - `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`
 - `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (and optional `S3_ENDPOINT`)
-- `AI_API_KEY` (optional, but needed for AI features)
+- AI config (optional, but needed for AI features):
+  - `AI_PROVIDER=openai` with `AI_API_KEY`
+  - or `AI_PROVIDER=groq` with `GROQ_API_KEY`
+  - optional `AI_MODEL` override (`llama-3.3-70b-versatile` works well on Groq)
 
 4. (Optional) Create `apps/web/.env.local` if you need custom frontend config:
 

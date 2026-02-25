@@ -2,7 +2,7 @@
 
 export function WorkbookSkeleton() {
   return (
-    <div className="flex h-screen flex-col" aria-busy="true" aria-label="Loading workbook">
+    <div className="flex h-full flex-col" aria-busy="true" aria-label="Loading workbook">
       {/* Header skeleton */}
       <div className="flex h-14 items-center justify-between border-b bg-white px-4">
         <div className="flex items-center gap-3">

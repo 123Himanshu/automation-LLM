@@ -18,25 +18,55 @@ export interface LLMResponse {
   finishReason: string;
 }
 
+type AIProvider = 'openai' | 'groq';
+
 @Injectable()
 export class OpenAIClientService implements OnModuleInit {
   private readonly logger = new Logger(OpenAIClientService.name);
   private client: OpenAI | null = null;
+  private provider: AIProvider = 'openai';
   private model = 'gpt-4o';
-  private maxTokens = 16384;
+  private maxTokens = 4096;
 
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit(): void {
-    const apiKey = this.config.get<string>('AI_API_KEY');
-    this.model = this.config.get<string>('AI_MODEL') ?? 'gpt-4o';
-    this.maxTokens = parseInt(this.config.get<string>('AI_MAX_TOKENS') ?? '4096', 10);
+    this.provider = (this.config.get<string>('AI_PROVIDER') as AIProvider | undefined) ?? 'openai';
+
+    const openAiApiKey = this.config.get<string>('AI_API_KEY');
+    const groqApiKey = this.config.get<string>('GROQ_API_KEY');
+    const baseUrlFromEnv = this.config.get<string>('AI_BASE_URL');
+
+    const defaultModel = this.provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-4o';
+    this.model = this.config.get<string>('AI_MODEL') ?? defaultModel;
+
+    const configuredMaxTokens = this.config.get<number>('AI_MAX_TOKENS');
+    this.maxTokens =
+      typeof configuredMaxTokens === 'number' && Number.isFinite(configuredMaxTokens)
+        ? configuredMaxTokens
+        : 4096;
+
+    const apiKey = this.provider === 'groq' ? (groqApiKey ?? openAiApiKey) : openAiApiKey;
+    const baseURL =
+      this.provider === 'groq'
+        ? (baseUrlFromEnv ?? 'https://api.groq.com/openai/v1')
+        : baseUrlFromEnv;
 
     if (apiKey) {
-      this.client = new OpenAI({ apiKey, timeout: 120_000 }); // 2 minute timeout
-      this.logger.log(`OpenAI client initialized (model: ${this.model})`);
+      this.client = new OpenAI({
+        apiKey,
+        ...(baseURL ? { baseURL } : {}),
+        timeout: 120_000,
+      });
+      this.logger.log(
+        `LLM client initialized (provider: ${this.provider}, model: ${this.model}${baseURL ? `, baseURL: ${baseURL}` : ''})`,
+      );
     } else {
-      this.logger.warn('AI_API_KEY not set — AI features disabled');
+      this.logger.warn(
+        this.provider === 'groq'
+          ? 'No Groq key found (set GROQ_API_KEY or AI_API_KEY) - AI features disabled'
+          : 'AI_API_KEY not set - AI features disabled',
+      );
     }
   }
 
@@ -46,7 +76,11 @@ export class OpenAIClientService implements OnModuleInit {
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
     if (!this.client) {
-      throw new Error('OpenAI client not initialized — set AI_API_KEY in .env');
+      throw new Error(
+        this.provider === 'groq'
+          ? 'LLM client not initialized - set GROQ_API_KEY (or AI_API_KEY) in .env'
+          : 'LLM client not initialized - set AI_API_KEY in .env',
+      );
     }
 
     const messages: ChatCompletionMessageParam[] = [
@@ -64,7 +98,9 @@ export class OpenAIClientService implements OnModuleInit {
     });
 
     const choice = completion.choices[0];
-    if (!choice) throw new Error('No response from OpenAI');
+    if (!choice) {
+      throw new Error(`No response from ${this.provider === 'groq' ? 'Groq' : 'OpenAI'}`);
+    }
 
     return {
       content: choice.message.content ?? '',

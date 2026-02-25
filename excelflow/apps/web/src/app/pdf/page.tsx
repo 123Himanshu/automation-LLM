@@ -1,26 +1,28 @@
 'use client';
 
-import { PdfSidebar } from '@/components/pdf/pdf-sidebar';
+import { WorkspaceTopNav } from '@/components/layout/workspace-top-nav';
 import { PdfChatPanel } from '@/components/pdf/pdf-chat-panel';
+import { PdfSidebar } from '@/components/pdf/pdf-sidebar';
 import { PdfViewerPanel } from '@/components/pdf/pdf-viewer-panel';
 
 export default function PdfWorkspacePage() {
-    return (
-        <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
-            {/* LEFT SIDEBAR — Chat History */}
-            <div className="w-64 shrink-0">
-                <PdfSidebar />
-            </div>
+  return (
+    <div className="h-screen overflow-hidden bg-app-canvas">
+      <WorkspaceTopNav />
 
-            {/* CENTER — Chat Panel */}
-            <div className="flex-1 min-w-0 border-r border-gray-200">
-                <PdfChatPanel />
-            </div>
-
-            {/* RIGHT — PDF Viewer / Editor */}
-            <div className="w-[480px] shrink-0">
-                <PdfViewerPanel />
-            </div>
+      <div className="flex h-[calc(100vh-56px)] w-full overflow-hidden bg-slate-50">
+        <div className="w-64 shrink-0">
+          <PdfSidebar />
         </div>
-    );
+
+        <div className="min-w-0 flex-1 border-r border-slate-200">
+          <PdfChatPanel />
+        </div>
+
+        <div className="w-[480px] shrink-0 border-l border-slate-200">
+          <PdfViewerPanel />
+        </div>
+      </div>
+    </div>
+  );
 }

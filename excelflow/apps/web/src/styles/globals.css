@@ -33,6 +33,25 @@
   }
 }
 
+@layer components {
+  .bg-app-canvas {
+    background-color: #f4f8fc;
+    background-image:
+      radial-gradient(circle at 8% 8%, rgba(14, 165, 233, 0.1), transparent 28%),
+      radial-gradient(circle at 92% 6%, rgba(59, 130, 246, 0.1), transparent 24%),
+      linear-gradient(180deg, #f8fbff 0%, #f4f8fc 45%, #f6f9fd 100%);
+  }
+
+  .light-card {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.03),
+      0 12px 32px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(4px);
+  }
+}
+
 /* ─── Custom scrollbar ─── */
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;

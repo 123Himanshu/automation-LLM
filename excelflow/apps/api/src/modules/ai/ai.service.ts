@@ -369,7 +369,7 @@ export class AIService {
       content:
         `I can see your workbook has ${context.sheets.length} sheet(s): ${sheetInfo}. ` +
         `Classification: ${context.classification}. ` +
-        `AI_API_KEY is not configured — set it in .env to enable full AI capabilities.`,
+        `LLM API key is not configured — set it in .env to enable full AI capabilities.`,
       timestamp: new Date().toISOString(),
     };
   }

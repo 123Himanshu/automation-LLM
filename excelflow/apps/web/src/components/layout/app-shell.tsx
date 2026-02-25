@@ -51,7 +51,7 @@ export function AppShell({ header, children, sidebar }: AppShellProps) {
   }, [setChatPanelWidth]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50/30">
+    <div className="flex h-full flex-col overflow-hidden bg-slate-50/30">
       {header}
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-hidden" role="main">

@@ -1,212 +1,97 @@
-'use client';
-
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowRight, FileSpreadsheet, FileText, Sparkles } from 'lucide-react';
+import { LightPageShell } from '@/components/layout/light-page-shell';
 import { Button } from '@/components/ui/button';
-import { api, ApiError } from '@/lib/api-client';
-import type { WorkbookMeta } from '@excelflow/shared';
-import { Upload, FileSpreadsheet, AlertCircle, Plus, Trash2, Pencil, Check, X, FileText } from 'lucide-react';
+
+const workspaces = [
+  {
+    title: 'Excel Flow',
+    description:
+      'Create and edit spreadsheets with formula help, revision history, and AI-assisted operations.',
+    href: '/excel',
+    accent: 'from-blue-50 to-cyan-50 border-blue-200',
+    icon: FileSpreadsheet,
+    cta: 'Open Excel Workspace',
+  },
+  {
+    title: 'PDF Workspace',
+    description:
+      'Upload PDF files, apply style-preserving edits, collaborate with AI, and regenerate downloadable files.',
+    href: '/pdf',
+    accent: 'from-indigo-50 to-sky-50 border-indigo-200',
+    icon: FileText,
+    cta: 'Open PDF Workspace',
+  },
+  {
+    title: 'DOCX Workspace',
+    description:
+      'Edit DOCX files in real time, apply AI-assisted changes, and regenerate while preserving document styling.',
+    href: '/docx',
+    accent: 'from-cyan-50 to-emerald-50 border-cyan-200',
+    icon: FileText,
+    cta: 'Open DOCX Workspace',
+  },
+];
 
 export default function HomePage() {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [workbooks, setWorkbooks] = useState<WorkbookMeta[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const editRef = useRef<HTMLInputElement>(null);
-
-  const loadWorkbooks = useCallback(() => {
-    api.listWorkbooks()
-      .then((res) => setWorkbooks(res.data))
-      .catch(() => { });
-  }, []);
-
-  useEffect(() => { loadWorkbooks(); }, [loadWorkbooks]);
-
-  const handleCreateNew = useCallback(async () => {
-    setIsCreating(true);
-    setError(null);
-    try {
-      const res = await api.createWorkbook();
-      router.push(`/workbook/${res.data.id}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create workbook');
-    } finally {
-      setIsCreating(false);
-    }
-  }, [router]);
-
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    setError(null);
-    try {
-      const res = await api.uploadWorkbook(file);
-      router.push(`/workbook/${res.data.id}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Upload failed');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }, [router]);
-
-  const handleDelete = useCallback(async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Delete this workbook? This cannot be undone.')) return;
-    try {
-      await api.deleteWorkbook(id);
-      setWorkbooks((prev) => prev.filter((wb) => wb.id !== id));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Delete failed');
-    }
-  }, []);
-
-  const startRename = useCallback((id: string, name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(id);
-    setEditName(name);
-    setTimeout(() => editRef.current?.select(), 50);
-  }, []);
-
-  const commitRename = useCallback(async () => {
-    if (!editingId || !editName.trim()) { setEditingId(null); return; }
-    try {
-      await api.renameWorkbook(editingId, editName.trim());
-      setWorkbooks((prev) => prev.map((wb) => wb.id === editingId ? { ...wb, name: editName.trim() } : wb));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Rename failed');
-    }
-    setEditingId(null);
-  }, [editingId, editName]);
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-8">
-      <div className="w-full max-w-2xl space-y-8">
-        <div className="text-center space-y-2">
-          <FileSpreadsheet className="mx-auto h-12 w-12 text-primary" />
-          <h1 className="text-3xl font-bold">ExcelFlow</h1>
-          <p className="text-muted-foreground">Upload an Excel file to get started</p>
-        </div>
+    <LightPageShell contentClassName="space-y-8 md:space-y-10">
+      <section className="light-card relative overflow-hidden rounded-3xl p-6 sm:p-8 md:p-10">
+        <div className="absolute -left-24 top-4 h-44 w-44 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="absolute -right-20 bottom-[-30px] h-48 w-48 rounded-full bg-cyan-100/70 blur-3xl" />
 
-        {error && (
-          <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
+        <div className="relative space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+            <Sparkles className="h-3.5 w-3.5" />
+            Unified AI Productivity Suite
           </div>
-        )}
-
-        <div
-          className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-white p-12 transition-colors hover:border-primary/50 cursor-pointer"
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          aria-label="Upload Excel file"
-        >
-          <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm font-medium">{isUploading ? 'Uploading...' : 'Click to upload .xlsx or .csv'}</p>
-          <p className="text-xs text-muted-foreground mt-1">Max 50MB</p>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.csv" onChange={handleUpload} className="hidden" aria-hidden="true" />
-        </div>
-
-        <div className="flex justify-center gap-3">
-          <Button variant="outline" onClick={handleCreateNew} disabled={isCreating} aria-label="Create new empty workbook">
-            <Plus className="mr-2 h-4 w-4" />
-            {isCreating ? 'Creating...' : 'Create New Workbook'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/pdf')}
-            aria-label="Open PDF AI Workspace"
-            className="border-violet-300 text-violet-700 hover:bg-violet-50"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            PDF AI Workspace
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/docx')}
-            aria-label="Open DOCX AI Workspace"
-            className="border-blue-300 text-blue-700 hover:bg-blue-50"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            DOCX AI Workspace
-          </Button>
-        </div>
-
-        {workbooks.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-sm font-medium text-muted-foreground">Recent Workbooks</h2>
-            <div className="space-y-2">
-              {workbooks.map((wb) => (
-                <div
-                  key={wb.id}
-                  className="flex w-full items-center gap-3 rounded-md border bg-white p-3 transition-colors hover:bg-muted/50 cursor-pointer"
-                  onClick={() => router.push(`/workbook/${wb.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && router.push(`/workbook/${wb.id}`)}
-                >
-                  <FileSpreadsheet className="h-5 w-5 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    {editingId === wb.id ? (
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          ref={editRef}
-                          className="h-6 w-40 rounded border px-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
-                          onBlur={commitRename}
-                          aria-label="Rename workbook"
-                        />
-                        <button onClick={commitRename} className="p-0.5 text-green-600 hover:bg-green-50 rounded" aria-label="Confirm">
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="p-0.5 text-muted-foreground hover:bg-muted rounded" aria-label="Cancel">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-sm font-medium truncate">{wb.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {wb.sheetCount} sheet{wb.sheetCount !== 1 ? 's' : ''} · {wb.classification}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {editingId !== wb.id && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={(e) => startRename(wb.id, wb.name, e)}
-                        className="p-1.5 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                        aria-label="Rename workbook"
-                        title="Rename"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(wb.id, e)}
-                        className="p-1.5 rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        aria-label="Delete workbook"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+          <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+            One home for spreadsheet, PDF, and DOCX workflows
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+            Choose a workspace and continue instantly. Every workspace supports real-time editing,
+            AI assistance, and export-ready outputs while preserving structure and formatting.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild className="h-10 rounded-xl px-4">
+              <Link href="/excel">
+                Start with Excel
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-10 rounded-xl border-slate-300 bg-white px-4">
+              <Link href="/pdf">Go to PDF Workspace</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-10 rounded-xl border-slate-300 bg-white px-4">
+              <Link href="/docx">Go to DOCX Workspace</Link>
+            </Button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {workspaces.map((workspace) => {
+          const Icon = workspace.icon;
+          return (
+            <article
+              key={workspace.title}
+              className={`light-card flex h-full flex-col rounded-2xl border bg-gradient-to-b ${workspace.accent} p-5`}
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 text-slate-800 shadow-sm">
+                <Icon className="h-5 w-5" />
+              </span>
+              <h2 className="mt-4 text-lg font-semibold text-slate-900">{workspace.title}</h2>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{workspace.description}</p>
+              <Button asChild variant="outline" className="mt-5 justify-between rounded-xl border-slate-300 bg-white">
+                <Link href={workspace.href}>
+                  {workspace.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </article>
+          );
+        })}
+      </section>
+    </LightPageShell>
   );
 }

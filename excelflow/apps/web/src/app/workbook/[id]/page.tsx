@@ -6,6 +6,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { AppHeader } from '@/components/layout/app-header';
 import { ErrorBoundary } from '@/components/layout/error-boundary';
 import { WorkbookSkeleton } from '@/components/layout/workbook-skeleton';
+import { WorkspaceTopNav } from '@/components/layout/workspace-top-nav';
 import { FormulaBar } from '@/components/spreadsheet/formula-bar';
 import { Toolbar } from '@/components/spreadsheet/toolbar';
 import { SheetTabs } from '@/components/spreadsheet/sheet-tabs';
@@ -75,40 +76,50 @@ export default function WorkbookEditorPage() {
     [sheets],
   );
 
-  if (isLoading) return <WorkbookSkeleton />;
+  if (isLoading) {
+    return (
+      <div className="h-screen overflow-hidden bg-app-canvas">
+        <WorkspaceTopNav />
+        <div className="h-[calc(100vh-56px)]">
+          <WorkbookSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
-      <AppShell
-        header={<AppHeader workbookName={workbook?.name} classification={classification} />}
-        sidebar={
-          isChatOpen ? (
-            <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading chat...</div>}>
-              <ChatPanel />
-            </Suspense>
-          ) : undefined
-        }
-      >
-        <div className="flex h-full flex-col relative">
-          <Toolbar />
-          <FormulaBar onSubmit={handleFormulaSubmit} />
-          <FindReplace />
-          <GridWrapper
-            sheet={activeSheet}
-            classification={classification}
-            onCellChange={handleCellChange}
-          />
-          <SheetTabs
-            sheets={sheetList}
-            activeSheetId={activeSheetId}
-            onSelect={setActiveSheet}
-            onAddSheet={addSheet}
-            onRenameSheet={renameSheet}
-            onDeleteSheet={deleteSheet}
-          />
-          <StatusBar />
+      <div className="h-screen overflow-hidden bg-app-canvas">
+        <WorkspaceTopNav />
+        <div className="h-[calc(100vh-56px)]">
+          <AppShell
+            header={<AppHeader workbookName={workbook?.name} classification={classification} />}
+            sidebar={
+              isChatOpen ? (
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading chat...</div>}>
+                  <ChatPanel />
+                </Suspense>
+              ) : undefined
+            }
+          >
+            <div className="relative flex h-full flex-col">
+              <Toolbar />
+              <FormulaBar onSubmit={handleFormulaSubmit} />
+              <FindReplace />
+              <GridWrapper sheet={activeSheet} classification={classification} onCellChange={handleCellChange} />
+              <SheetTabs
+                sheets={sheetList}
+                activeSheetId={activeSheetId}
+                onSelect={setActiveSheet}
+                onAddSheet={addSheet}
+                onRenameSheet={renameSheet}
+                onDeleteSheet={deleteSheet}
+              />
+              <StatusBar />
+            </div>
+          </AppShell>
         </div>
-      </AppShell>
+      </div>
 
       <Suspense fallback={null}>
         <ExportModal />

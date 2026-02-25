@@ -1,16 +1,14 @@
-# ─── ExcelFlow API — Root-level Dockerfile ───
-# Build context: repo root
+
 
 # ── Stage 1: Build ──
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Copy workspace root config + lockfile
+
 COPY excelflow/package.json excelflow/package-lock.json ./
 COPY excelflow/turbo.json ./
 COPY excelflow/tsconfig.base.json ./
 
-# Copy ALL workspace package.json files (npm workspaces needs them)
 COPY excelflow/packages/shared/package.json ./packages/shared/
 COPY excelflow/apps/api/package.json ./apps/api/
 COPY excelflow/apps/web/package.json ./apps/web/
@@ -45,21 +43,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy the ENTIRE workspace from builder (preserves symlinks + node_modules structure)
 COPY --from=builder /app ./
 
-# Remove source files and dev artifacts to slim down
+
 RUN rm -rf packages/shared/src apps/api/src apps/web \
     tsconfig.base.json turbo.json .turbo
-
-# Prune dev dependencies
 RUN npm prune --omit=dev --legacy-peer-deps 2>/dev/null || true
 
-# Install Playwright browser for PDF export
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 RUN npx playwright install chromium 2>/dev/null || true
 
-# Create upload/export directories
+
 RUN mkdir -p /app/apps/api/uploads /app/apps/api/exports
 
 WORKDIR /app/apps/api
