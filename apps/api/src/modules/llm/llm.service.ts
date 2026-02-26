@@ -142,24 +142,18 @@ export class LLMService {
 
   /** Stream a chat response via SSE */
   async chatStream(request: ChatRequest, reply: FastifyReply): Promise<void> {
+    // Set SSE headers via Fastify so CORS middleware headers are preserved
+    reply.header('Content-Type', 'text/event-stream');
+    reply.header('Cache-Control', 'no-cache');
+    reply.header('Connection', 'keep-alive');
+    reply.header('X-Accel-Buffering', 'no');
+
     if (!this.openai.isAvailable('groq')) {
-      reply.raw.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      });
       const errData = JSON.stringify({ type: 'error', content: 'AI is not configured. Set GROQ_API_KEY.' });
       reply.raw.write(`data: ${errData}\n\n`);
       reply.raw.end();
       return;
     }
-
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    });
 
     const systemPrompt = this.buildSystemPrompt(request);
     const conversationHistory = this.trimHistory(request.history ?? []);

@@ -58,12 +58,11 @@ export class DocxController {
     @Body() body: { message: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    // Set SSE headers via Fastify so CORS middleware headers are preserved
+    reply.header('Content-Type', 'text/event-stream');
+    reply.header('Cache-Control', 'no-cache');
+    reply.header('Connection', 'keep-alive');
+    reply.header('X-Accel-Buffering', 'no');
 
     try {
       for await (const chunk of this.docxService.chatStream(id, body.message)) {
