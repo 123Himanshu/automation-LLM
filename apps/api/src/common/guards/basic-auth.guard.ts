@@ -2,7 +2,6 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,8 +10,6 @@ import type { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class BasicAuthGuard implements CanActivate {
-  private readonly logger = new Logger(BasicAuthGuard.name);
-
   constructor(private readonly config: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -20,7 +17,6 @@ export class BasicAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Basic ')) {
-      this.logger.warn(`Auth rejected: no Basic header present. Header: ${authHeader ? '[redacted non-basic]' : '[missing]'}`);
       throw new UnauthorizedException('Missing Basic Auth credentials');
     }
 
@@ -34,24 +30,14 @@ export class BasicAuthGuard implements CanActivate {
     const username = decoded.slice(0, colonIdx);
     const password = decoded.slice(colonIdx + 1);
 
-    const rawUser = this.config.get<string>('BASIC_AUTH_USERNAME') ?? '';
-    const rawPass = this.config.get<string>('BASIC_AUTH_PASSWORD') ?? '';
-    const expectedUser = rawUser.replace(/^"|"$/g, '');
-    const expectedPass = rawPass.replace(/^"|"$/g, '');
-
-    // DEBUG: log lengths and first/last chars to diagnose mismatch (remove after fix)
-    this.logger.debug(
-      `Auth debug — received user: "${username}" (len=${username.length}), ` +
-      `expected user raw: len=${rawUser.length}, cleaned: len=${expectedUser.length} | ` +
-      `received pass len=${password.length}, expected pass raw len=${rawPass.length}, cleaned len=${expectedPass.length}`,
-    );
+    const expectedUser = (this.config.get<string>('BASIC_AUTH_USERNAME') ?? '').replace(/^"|"$/g, '');
+    const expectedPass = (this.config.get<string>('BASIC_AUTH_PASSWORD') ?? '').replace(/^"|"$/g, '');
 
     // Constant-time comparison to prevent timing attacks
     const userMatch = this.safeCompare(username, expectedUser);
     const passMatch = this.safeCompare(password, expectedPass);
 
     if (!userMatch || !passMatch) {
-      this.logger.warn(`Auth rejected: userMatch=${userMatch}, passMatch=${passMatch}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 

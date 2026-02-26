@@ -14,7 +14,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { api, authCredentials } from '@/lib/api-client';
 
 type ViewMode = 'pdf' | 'edit' | 'find-replace';
 
@@ -48,11 +48,8 @@ export function PdfViewerPanel() {
   const loadPdfBlob = useCallback(async (sessionId: string) => {
     setLoadingPdf(true);
     try {
-      const credentials = btoa(
-        `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-      );
       const res = await fetch(`/api/pdf/sessions/${sessionId}/download`, {
-        headers: { Authorization: `Basic ${credentials}` },
+        headers: { Authorization: `Basic ${authCredentials}` },
       });
       if (!res.ok) throw new Error('Failed to load PDF');
 
@@ -104,11 +101,8 @@ export function PdfViewerPanel() {
 
   const handleDownload = async () => {
     try {
-      const credentials = btoa(
-        `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-      );
       const res = await fetch(`/api/pdf/sessions/${activeSessionId}/download`, {
-        headers: { Authorization: `Basic ${credentials}` },
+        headers: { Authorization: `Basic ${authCredentials}` },
       });
       if (!res.ok) throw new Error('Download failed');
 

@@ -61,6 +61,9 @@ function stripQuotes(val: string): string {
 const AUTH_USER = stripQuotes(process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin');
 const AUTH_PASS = stripQuotes(process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme');
 
+/** Base64-encoded Basic Auth credentials — safe to use anywhere in the frontend */
+export const authCredentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
+
 async function request<T>(
   path: string,
   options: RequestInit = {},

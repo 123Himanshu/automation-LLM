@@ -13,7 +13,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { api, authCredentials } from '@/lib/api-client';
 import { useDocxStore } from '@/stores/docx-store';
 
 type ViewMode = 'docx' | 'edit' | 'find-replace';
@@ -67,11 +67,8 @@ export function DocxViewerPanel() {
 
   const handleDownload = async () => {
     try {
-      const credentials = btoa(
-        `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-      );
       const res = await fetch(`/api/docx/sessions/${activeSessionId}/download`, {
-        headers: { Authorization: `Basic ${credentials}` },
+        headers: { Authorization: `Basic ${authCredentials}` },
       });
       if (!res.ok) throw new Error('Download failed');
 

@@ -4,6 +4,7 @@ import { type ReactElement, useEffect, useState } from 'react';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, FileText, Loader2, Download, ArrowLeft, X, Check } from 'lucide-react';
+import { authCredentials } from '@/lib/api-client';
 
 /* ── Choose Format View ─────────────────────────────────────────────── */
 
@@ -253,13 +254,10 @@ export function PreviewView({ pendingExport, isDownloading, error, onDownload, o
   useEffect(() => {
     if (!isPdf || !pendingExport.previewUrl) return;
     let revoked = false;
-    const credentials = btoa(
-      `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-    );
     setPdfLoading(true);
     const baseUrl = process.env['NEXT_PUBLIC_API_URL'] ?? '';
     fetch(`${baseUrl}${pendingExport.previewUrl}`, {
-      headers: { Authorization: `Basic ${credentials}` },
+      headers: { Authorization: `Basic ${authCredentials}` },
     })
       .then((res) => {
         if (!res.ok) throw new Error(`PDF preview failed: ${res.status}`);
