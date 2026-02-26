@@ -32,6 +32,11 @@ const navItems: NavItem[] = [
     label: 'DOCX Workspace',
     isActive: (pathname) => pathname.startsWith('/docx'),
   },
+  {
+    href: '/llm',
+    label: 'AI Chat',
+    isActive: (pathname) => pathname.startsWith('/llm'),
+  },
 ];
 
 export function WorkspaceTopNav() {

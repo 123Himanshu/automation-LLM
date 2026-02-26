@@ -12,6 +12,7 @@ import { AIModule } from './modules/ai/ai.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { PdfModule } from './modules/pdf/pdf.module';
 import { DocxModule } from './modules/docx/docx.module';
+import { LLMModule } from './modules/llm/llm.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DocxModule } from './modules/docx/docx.module';
     CleanupModule,
     PdfModule,
     DocxModule,
+    LLMModule,
   ],
 })
 export class AppModule { }

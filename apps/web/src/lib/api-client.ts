@@ -386,6 +386,17 @@ export const api = {
 
   deleteDocxSession: (id: string): Promise<ApiResponse<{ success: boolean }>> =>
     request(`/api/docx/sessions/${id}`, { method: 'DELETE' }),
+
+  // ─── LLM Chat ───
+
+  llmChat: (
+    message: string,
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ): Promise<ApiResponse<{ role: 'assistant'; content: string; timestamp: string }>> =>
+    request('/api/llm/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, history }),
+    }),
 };
 
 export { ApiError };
