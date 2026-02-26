@@ -9,6 +9,7 @@ const apiUrl =
     : `https://${rawApiUrl}`;
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   transpilePackages: ['@excelflow/shared'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
   async rewrites() {
