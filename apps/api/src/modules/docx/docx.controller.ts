@@ -15,6 +15,7 @@ import {
 import { ApiBasicAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { BasicAuthGuard } from '../../common/guards/basic-auth.guard';
+import { buildSSEHeaders } from '../../common/utils/sse-headers';
 import { DocxService } from './docx.service';
 
 @ApiTags('docx')
@@ -58,11 +59,8 @@ export class DocxController {
     @Body() body: { message: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    // Set SSE headers via Fastify so CORS middleware headers are preserved
-    reply.header('Content-Type', 'text/event-stream');
-    reply.header('Cache-Control', 'no-cache');
-    reply.header('Connection', 'keep-alive');
-    reply.header('X-Accel-Buffering', 'no');
+    // Set SSE + CORS headers for raw streaming (bypasses Fastify's send pipeline)
+    reply.raw.writeHead(200, buildSSEHeaders(reply));
 
     try {
       for await (const chunk of this.docxService.chatStream(id, body.message)) {

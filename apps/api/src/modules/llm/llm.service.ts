@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OpenAIClientService } from '../ai/openai-client.service';
 import { LLMDocumentService } from './llm-document.service';
+import { buildSSEHeaders } from '../../common/utils/sse-headers';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { FastifyReply } from 'fastify';
 
@@ -142,18 +143,17 @@ export class LLMService {
 
   /** Stream a chat response via SSE */
   async chatStream(request: ChatRequest, reply: FastifyReply): Promise<void> {
-    // Set SSE headers via Fastify so CORS middleware headers are preserved
-    reply.header('Content-Type', 'text/event-stream');
-    reply.header('Cache-Control', 'no-cache');
-    reply.header('Connection', 'keep-alive');
-    reply.header('X-Accel-Buffering', 'no');
+    const headers = buildSSEHeaders(reply);
 
     if (!this.openai.isAvailable('groq')) {
+      reply.raw.writeHead(200, headers);
       const errData = JSON.stringify({ type: 'error', content: 'AI is not configured. Set GROQ_API_KEY.' });
       reply.raw.write(`data: ${errData}\n\n`);
       reply.raw.end();
       return;
     }
+
+    reply.raw.writeHead(200, headers);
 
     const systemPrompt = this.buildSystemPrompt(request);
     const conversationHistory = this.trimHistory(request.history ?? []);
