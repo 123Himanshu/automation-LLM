@@ -95,33 +95,33 @@ export default function HomePage() {
           </p>
 
           {/* Search box */}
-          <div className="relative max-w-xl">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white shadow-sm transition-all focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
-              <Search className="ml-4 h-4 w-4 shrink-0 text-slate-400" />
+          <div className="relative max-w-2xl">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-2 shadow-md transition-all focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
+              <Search className="ml-4 h-5 w-5 shrink-0 text-slate-400" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask AI anything... (press Enter)"
-                className="flex-1 bg-transparent py-3 pr-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                className="flex-1 bg-transparent py-4 pr-2 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none"
                 aria-label="Ask AI a question"
               />
               <button
                 onClick={handleSearch}
                 disabled={!query.trim()}
-                className="mr-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white transition-all hover:bg-violet-700 disabled:opacity-40"
+                className="mr-1 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-700 disabled:opacity-40"
                 aria-label="Search"
               >
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-5 w-5" />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {QUICK_PROMPTS.map((p) => (
                 <button
                   key={p}
                   onClick={() => router.push(`/llm?q=${encodeURIComponent(p)}`)}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
+                  className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-slate-500 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
                 >
                   {p}
                 </button>

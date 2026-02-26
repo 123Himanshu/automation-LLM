@@ -8,11 +8,23 @@ interface Message {
   timestamp: string;
 }
 
+interface UploadedDocument {
+  documentId: string;
+  fileName: string;
+  totalChunks: number;
+  totalChars: number;
+  pageCount: number;
+}
+
 interface LLMStore {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  document: UploadedDocument | null;
+  isUploading: boolean;
   sendMessage: (content: string) => Promise<void>;
+  uploadDocument: (file: File) => Promise<void>;
+  removeDocument: () => Promise<void>;
   clearChat: () => void;
 }
 
@@ -20,6 +32,8 @@ export const useLLMStore = create<LLMStore>((set, get) => ({
   messages: [],
   isLoading: false,
   error: null,
+  document: null,
+  isUploading: false,
 
   sendMessage: async (content: string) => {
     const userMsg: Message = {
@@ -37,7 +51,8 @@ export const useLLMStore = create<LLMStore>((set, get) => ({
         content: m.content,
       }));
 
-      const res = await api.llmChat(content, history);
+      const documentId = get().document?.documentId;
+      const res = await api.llmChat(content, history, documentId);
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -52,5 +67,31 @@ export const useLLMStore = create<LLMStore>((set, get) => ({
     }
   },
 
-  clearChat: () => set({ messages: [], error: null }),
+  uploadDocument: async (file: File) => {
+    set({ isUploading: true, error: null });
+    try {
+      const res = await api.llmUploadDocument(file);
+      set({
+        document: res.data,
+        isUploading: false,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      set({ isUploading: false, error: msg });
+    }
+  },
+
+  removeDocument: async () => {
+    const doc = get().document;
+    if (doc) {
+      try {
+        await api.llmRemoveDocument(doc.documentId);
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+    set({ document: null });
+  },
+
+  clearChat: () => set({ messages: [], error: null, document: null }),
 }));

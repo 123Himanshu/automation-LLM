@@ -392,11 +392,33 @@ export const api = {
   llmChat: (
     message: string,
     history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    documentId?: string,
   ): Promise<ApiResponse<{ role: 'assistant'; content: string; timestamp: string }>> =>
     request('/api/llm/chat', {
       method: 'POST',
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, documentId }),
     }),
+
+  llmUploadDocument: async (
+    file: File,
+  ): Promise<ApiResponse<{ documentId: string; fileName: string; totalChunks: number; totalChars: number; pageCount: number }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
+    const res = await fetch(`${BASE_URL}/api/llm/document/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${credentials}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: res.statusText }));
+      throw new ApiError(res.status, body.message ?? 'Upload failed');
+    }
+    return (await res.json()) as ApiResponse<{ documentId: string; fileName: string; totalChunks: number; totalChars: number; pageCount: number }>;
+  },
+
+  llmRemoveDocument: (id: string): Promise<ApiResponse<{ removed: boolean }>> =>
+    request(`/api/llm/document/${id}`, { method: 'DELETE' }),
 };
 
 export { ApiError };
