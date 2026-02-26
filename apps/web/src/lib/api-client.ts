@@ -53,15 +53,21 @@ function validateResponse(schema: z.ZodTypeAny, data: unknown): void {
   }
 }
 
+/** Strip surrounding double-quotes that some PaaS dashboards inject */
+function stripQuotes(val: string): string {
+  return val.replace(/^"|"$/g, '');
+}
+
+const AUTH_USER = stripQuotes(process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin');
+const AUTH_PASS = stripQuotes(process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme');
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
   schema?: z.ZodTypeAny,
   timeoutMs?: number,
 ): Promise<T> {
-  const credentials = btoa(
-    `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-  );
+  const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
   const controller = timeoutMs ? new AbortController() : undefined;
   const timeoutId = timeoutMs
     ? globalThis.setTimeout(() => controller?.abort(), timeoutMs)
@@ -130,9 +136,7 @@ export const api = {
   ): Promise<ApiResponse<{ id: string; name: string; classification: string }>> => {
     const formData = new FormData();
     formData.append('file', file);
-    const credentials = btoa(
-      `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-    );
+    const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
     const res = await fetch(`${BASE_URL}/api/workbooks/upload`, {
       method: 'POST',
       headers: { Authorization: `Basic ${credentials}` },
@@ -262,9 +266,7 @@ export const api = {
   uploadPdf: async (file: File): Promise<ApiResponse<{ id: string; name: string; fileName: string; pageCount: number; createdAt: string }>> => {
     const formData = new FormData();
     formData.append('file', file);
-    const credentials = btoa(
-      `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-    );
+    const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
     const res = await fetch(`${BASE_URL}/api/pdf/upload`, {
       method: 'POST',
       headers: { Authorization: `Basic ${credentials}` },
@@ -323,9 +325,7 @@ export const api = {
   > => {
     const formData = new FormData();
     formData.append('file', file);
-    const credentials = btoa(
-      `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-    );
+    const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
     const res = await fetch(`${BASE_URL}/api/docx/upload`, {
       method: 'POST',
       headers: { Authorization: `Basic ${credentials}` },
@@ -393,9 +393,7 @@ export { ApiError };
  * attribute so the OS file-picker appears.
  */
 export async function triggerDownload(url: string, fileName: string): Promise<void> {
-  const credentials = btoa(
-    `${process.env['NEXT_PUBLIC_AUTH_USER'] ?? 'admin'}:${process.env['NEXT_PUBLIC_AUTH_PASS'] ?? 'changeme'}`,
-  );
+  const credentials = btoa(`${AUTH_USER}:${AUTH_PASS}`);
   const res = await fetch(`${BASE_URL}${url}`, {
     headers: { Authorization: `Basic ${credentials}` },
   });
