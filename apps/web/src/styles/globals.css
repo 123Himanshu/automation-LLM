@@ -214,3 +214,80 @@
   background: hsl(var(--muted-foreground) / 0.2);
   border-radius: 2px;
 }
+
+/* ─── Dark theme markdown for LLM chat ─── */
+.dark-markdown .markdown-msg {
+  color: #cbd5e1; /* slate-300 */
+}
+.dark-markdown .markdown-msg h1,
+.dark-markdown .markdown-msg h2,
+.dark-markdown .markdown-msg h3,
+.dark-markdown .markdown-msg h4 {
+  color: #e2e8f0; /* slate-200 */
+}
+.dark-markdown .markdown-msg h1 {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+.dark-markdown .markdown-msg strong {
+  color: #e2e8f0;
+}
+.dark-markdown .markdown-msg em {
+  color: #94a3b8; /* slate-400 */
+}
+.dark-markdown .markdown-msg a {
+  color: #a78bfa; /* violet-400 */
+}
+.dark-markdown .markdown-msg a:hover {
+  color: #c4b5fd; /* violet-300 */
+}
+.dark-markdown .markdown-msg code {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+.dark-markdown .markdown-msg blockquote {
+  border-left-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
+  color: #94a3b8;
+}
+.dark-markdown .markdown-msg hr {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark-markdown .markdown-msg table {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark-markdown .markdown-msg thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+.dark-markdown .markdown-msg th {
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark-markdown .markdown-msg td {
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.dark-markdown .markdown-msg tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.dark-markdown .markdown-msg tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+/* Dark code blocks */
+.dark-markdown .markdown-msg div.group {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.dark-markdown .markdown-msg ul {
+  color: #cbd5e1;
+}
+.dark-markdown .markdown-msg ol {
+  color: #cbd5e1;
+}
+
+/* ─── Dark scrollbar for LLM page ─── */
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

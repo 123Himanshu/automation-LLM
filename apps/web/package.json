@@ -21,6 +21,7 @@
     "ag-grid-react": "^32.3.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "framer-motion": "^12.34.3",
     "hyperformula": "^2.7.0",
     "immer": "^10.1.0",
     "lucide-react": "^0.468.0",

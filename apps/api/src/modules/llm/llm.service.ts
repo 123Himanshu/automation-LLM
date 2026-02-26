@@ -3,7 +3,7 @@ import { OpenAIClientService } from '../ai/openai-client.service';
 import { LLMDocumentService } from './llm-document.service';
 import { buildSSEHeaders } from '../../common/utils/sse-headers';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import type { FastifyReply } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 interface ChatRequest {
   message: string;
@@ -142,8 +142,12 @@ export class LLMService {
   }
 
   /** Stream a chat response via SSE */
-  async chatStream(request: ChatRequest, reply: FastifyReply): Promise<void> {
-    const headers = buildSSEHeaders(reply);
+  async chatStream(
+    request: ChatRequest,
+    reply: FastifyReply,
+    req?: FastifyRequest,
+  ): Promise<void> {
+    const headers = buildSSEHeaders(reply, req);
 
     if (!this.openai.isAvailable('groq')) {
       reply.raw.writeHead(200, headers);

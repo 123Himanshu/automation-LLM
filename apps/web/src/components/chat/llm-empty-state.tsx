@@ -1,20 +1,21 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles, FileText, Code, BarChart3, PenLine } from 'lucide-react';
 
 const GENERAL_SUGGESTIONS = [
-  'Explain how VLOOKUP works in Excel',
-  'Write a Python script to merge two CSV files',
-  'What is the difference between margin and padding?',
-  'Help me write a professional email',
+  { text: 'Explain how VLOOKUP works in Excel', icon: BarChart3 },
+  { text: 'Write a Python script to merge two CSV files', icon: Code },
+  { text: 'What is the difference between margin and padding?', icon: Code },
+  { text: 'Help me write a professional email', icon: PenLine },
 ] as const;
 
 const DOCUMENT_SUGGESTIONS = [
-  'Summarize this document',
-  'What are the key points?',
-  'List all important dates mentioned',
-  'What conclusions does the document draw?',
+  { text: 'Summarize this document', icon: FileText },
+  { text: 'What are the key points?', icon: Sparkles },
+  { text: 'List all important dates mentioned', icon: BarChart3 },
+  { text: 'What conclusions does the document draw?', icon: PenLine },
 ] as const;
 
 interface LLMEmptyStateProps {
@@ -23,50 +24,83 @@ interface LLMEmptyStateProps {
   document: { fileName: string } | null;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
+};
+
 export function LLMEmptyState({ onSuggestion, onUploadClick, document: doc }: LLMEmptyStateProps): React.ReactNode {
   const suggestions = doc ? DOCUMENT_SUGGESTIONS : GENERAL_SUGGESTIONS;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100">
-        <Sparkles className="h-8 w-8 text-violet-600" />
-      </div>
-      <h2 className="text-xl font-semibold text-slate-900">
-        {doc ? `Chat about "${doc.fileName}"` : 'Ask anything'}
-      </h2>
-      <p className="mt-2 max-w-md text-center text-sm text-slate-500">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex h-full flex-col items-center justify-center px-4"
+    >
+      <motion.div
+        variants={itemVariants}
+        className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 ring-1 ring-violet-500/20"
+      >
+        <Sparkles className="h-8 w-8 text-violet-400" />
+        <div className="absolute -inset-1 animate-pulse rounded-2xl bg-violet-500/5" />
+      </motion.div>
+
+      <motion.h2 variants={itemVariants} className="text-xl font-semibold text-white">
+        {doc ? `Chat about "${doc.fileName}"` : 'What can I help you with?'}
+      </motion.h2>
+
+      <motion.p variants={itemVariants} className="mt-2 max-w-md text-center text-sm text-slate-400">
         {doc
           ? 'Your document is ready. Ask questions and I\'ll find answers from the relevant sections.'
           : 'I can help with coding, data analysis, writing, math, and more. Upload a PDF to ask questions about it.'}
-      </p>
+      </motion.p>
 
       {!doc && (
-        <button
+        <motion.button
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={onUploadClick}
-          className="mt-6 flex items-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 px-8 py-5 transition-all hover:border-violet-300 hover:bg-violet-50/50"
+          className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-5 backdrop-blur transition-colors hover:border-violet-500/30 hover:bg-white/10"
           aria-label="Upload a PDF document"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
-            <FileText className="h-5 w-5 text-violet-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20">
+            <FileText className="h-5 w-5 text-violet-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-slate-700">Upload a PDF</p>
-            <p className="text-xs text-slate-400">Drag & drop or click · Max 20MB</p>
+            <p className="text-sm font-medium text-slate-200">Upload a PDF</p>
+            <p className="text-xs text-slate-500">Drag & drop or click · Max 20MB</p>
           </div>
-        </button>
+        </motion.button>
       )}
 
-      <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-        {suggestions.map((s) => (
-          <button
-            key={s}
-            onClick={() => onSuggestion(s)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-    </div>
+      <motion.div variants={itemVariants} className="mt-8 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+        {suggestions.map((s) => {
+          const Icon = s.icon;
+          return (
+            <motion.button
+              key={s.text}
+              whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.08)' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onSuggestion(s.text)}
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-300 backdrop-blur transition-colors"
+            >
+              <Icon className="h-4 w-4 shrink-0 text-slate-500" />
+              <span>{s.text}</span>
+            </motion.button>
+          );
+        })}
+      </motion.div>
+    </motion.div>
   );
 }

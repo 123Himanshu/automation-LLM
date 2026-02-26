@@ -1,4 +1,4 @@
-import type { FastifyReply } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 /**
  * Build headers for SSE streaming responses that include proper CORS.
@@ -7,13 +7,20 @@ import type { FastifyReply } from 'fastify';
  * Fastify's CORS middleware never flushes its headers because `reply.send()`
  * is never called. This utility manually adds the CORS headers so
  * cross-origin streaming works correctly.
+ *
+ * Accepts an optional `req` parameter for reliable origin extraction.
  */
-export function buildSSEHeaders(reply: FastifyReply): Record<string, string> {
-  const origin = reply.request.headers['origin'] as string | undefined;
+export function buildSSEHeaders(
+  reply: FastifyReply,
+  req?: FastifyRequest,
+): Record<string, string> {
+  // Extract origin from explicit request, Fastify reply.request, or raw headers
+  const origin =
+    (req?.headers?.['origin'] as string | undefined) ??
+    (reply.request?.headers?.['origin'] as string | undefined);
+
   const normalized = (origin ?? '').replace(/\/+$/, '');
 
-  // Match the same logic as main.ts CORS config:
-  // allow exact FRONTEND_URL match or any *.vercel.app preview deploy
   const frontendUrl = process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
   const allowedOrigins = frontendUrl
     .split(',')
@@ -29,6 +36,8 @@ export function buildSSEHeaders(reply: FastifyReply): Record<string, string> {
     ? {
         'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       }
     : {};
 

@@ -57,10 +57,11 @@ export class DocxController {
   async chat(
     @Param('id') id: string,
     @Body() body: { message: string },
+    @Req() req: FastifyRequest,
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     // Set SSE + CORS headers for raw streaming (bypasses Fastify's send pipeline)
-    reply.raw.writeHead(200, buildSSEHeaders(reply));
+    reply.raw.writeHead(200, buildSSEHeaders(reply, req));
 
     try {
       for await (const chunk of this.docxService.chatStream(id, body.message)) {

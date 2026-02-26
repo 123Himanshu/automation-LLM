@@ -35,10 +35,15 @@ export class LLMController {
 
   @Post('chat/stream')
   @ApiOperation({ summary: 'Streaming LLM chat via SSE' })
-  async chatStream(@Body() body: ChatBody, @Res() reply: FastifyReply) {
+  async chatStream(
+    @Body() body: ChatBody,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
     await this.llmService.chatStream(
       { message: body.message, history: body.history, documentId: body.documentId },
       reply,
+      req,
     );
   }
 
