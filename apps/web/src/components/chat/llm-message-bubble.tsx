@@ -2,8 +2,9 @@
 
 import React, { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, Copy, Check, RotateCcw, RefreshCw } from 'lucide-react';
+import { Copy, Check, RotateCcw, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { MarkdownMessage } from '@/components/chat/markdown-message';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 interface LLMMessageBubbleProps {
   id: string;
@@ -35,8 +36,9 @@ export function LLMMessageBubble({
   onRegenerate,
 }: LLMMessageBubbleProps): React.ReactNode {
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback((): void => {
     navigator.clipboard.writeText(content).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -47,79 +49,114 @@ export function LLMMessageBubble({
   const isError = status === 'error';
   const isStreaming = status === 'streaming';
 
+  if (isUser) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' as const }}
+        className="flex justify-end py-2"
+      >
+        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-indigo-600/90 px-4 py-2.5 text-[14.5px] leading-relaxed text-white shadow-lg shadow-indigo-500/10">
+          <p className="whitespace-pre-wrap">{content}</p>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`group flex gap-3 rounded-xl px-4 py-3 ${
-        isUser ? 'bg-white/5' : ''
-      }`}
+      transition={{ duration: 0.3, ease: 'easeOut' as const }}
+      className="group/msg py-3"
     >
-      <div
-        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
-          isUser
-            ? 'bg-slate-700/60 text-slate-300'
-            : 'bg-gradient-to-br from-violet-500/20 to-indigo-500/20 text-violet-400 ring-1 ring-violet-500/20'
-        }`}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+      {/* Avatar + label row */}
+      <div className="mb-2 flex items-center gap-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-500/20 ring-1 ring-indigo-500/20">
+          <BrandLogo size={16} />
+        </div>
+        <span className="text-[13px] font-medium text-slate-300">Private LLM</span>
+        <span className="text-[11px] text-slate-600">{formatTime(timestamp)}</span>
       </div>
-      <div className="min-w-0 flex-1 pt-0.5">
+
+      {/* Content */}
+      <div className="pl-[38px]">
         {isError && !content ? (
-          <p className="text-sm italic text-red-400">Failed to generate response</p>
-        ) : role === 'assistant' ? (
-          <div className="dark-markdown">
-            <MarkdownMessage content={content} />
-          </div>
+          <p className="text-sm text-red-400/80">Something went wrong generating a response.</p>
         ) : (
-          <p className="whitespace-pre-wrap text-sm text-slate-200">{content}</p>
+          <MarkdownMessage content={content} />
         )}
 
         {isStreaming && (
           <motion.span
-            className="inline-block h-4 w-1.5 rounded-sm bg-violet-400"
-            animate={{ opacity: [1, 0.3, 1] }}
+            className="mt-1 inline-block h-5 w-[3px] rounded-full bg-indigo-400"
+            animate={{ opacity: [1, 0.2, 1] }}
             transition={{ duration: 0.8, repeat: Infinity }}
           />
         )}
 
-        <div className="mt-1 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="text-[10px] text-slate-500">{formatTime(timestamp)}</span>
-
-          {role === 'assistant' && content && status !== 'streaming' && (
+        {/* Action bar — appears on hover like Claude/ChatGPT */}
+        {!isStreaming && content && (
+          <div className="mt-2 flex items-center gap-0.5 opacity-0 transition-opacity duration-200 group-hover/msg:opacity-100">
             <button
               onClick={handleCopy}
-              className="rounded p-0.5 text-slate-500 transition-colors hover:bg-white/10 hover:text-slate-300"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
               aria-label={copied ? 'Copied' : 'Copy message'}
               title={copied ? 'Copied!' : 'Copy'}
             >
-              {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copied' : 'Copy'}
             </button>
-          )}
 
-          {isError && onRetry && (
-            <button
-              onClick={onRetry}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-red-400 transition-colors hover:bg-red-500/10"
-              aria-label="Retry message"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Retry
-            </button>
-          )}
+            {isLastAssistant && status === 'done' && onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
+                aria-label="Regenerate response"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Regenerate
+              </button>
+            )}
 
-          {isLastAssistant && role === 'assistant' && status === 'done' && content && onRegenerate && (
+            {isError && onRetry && (
+              <button
+                onClick={onRetry}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
+                aria-label="Retry message"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Retry
+              </button>
+            )}
+
+            <div className="mx-1 h-3 w-px bg-white/[0.06]" />
+
             <button
-              onClick={onRegenerate}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-slate-500 transition-colors hover:bg-white/10 hover:text-slate-300"
-              aria-label="Regenerate response"
+              onClick={() => setFeedback(feedback === 'up' ? null : 'up')}
+              className={`rounded-lg p-1.5 transition-colors ${
+                feedback === 'up'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'text-slate-600 hover:bg-white/[0.06] hover:text-slate-400'
+              }`}
+              aria-label="Good response"
             >
-              <RefreshCw className="h-3 w-3" />
-              Regenerate
+              <ThumbsUp className="h-3.5 w-3.5" />
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => setFeedback(feedback === 'down' ? null : 'down')}
+              className={`rounded-lg p-1.5 transition-colors ${
+                feedback === 'down'
+                  ? 'bg-red-500/10 text-red-400'
+                  : 'text-slate-600 hover:bg-white/[0.06] hover:text-slate-400'
+              }`}
+              aria-label="Bad response"
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

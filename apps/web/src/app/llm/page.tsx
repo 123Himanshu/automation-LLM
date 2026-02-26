@@ -13,14 +13,15 @@ import React, {
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send,
+  ArrowUp,
   Loader2,
-  Trash2,
+  Plus,
   Paperclip,
   FileText,
   X,
   Upload,
   Square,
+  Sparkles,
 } from 'lucide-react';
 import { useLLMStore } from '@/stores/llm-store';
 import { LLMEmptyState } from '@/components/chat/llm-empty-state';
@@ -28,8 +29,8 @@ import { LLMMessageBubble } from '@/components/chat/llm-message-bubble';
 import { ThinkingIndicator } from '@/components/chat/thinking-indicator';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
 
+/** Document badge shown above messages when a PDF is loaded */
 function DocumentBadge(): React.ReactNode {
   const document = useLLMStore((s) => s.document);
   const removeDocument = useLLMStore((s) => s.removeDocument);
@@ -39,20 +40,21 @@ function DocumentBadge(): React.ReactNode {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-2 backdrop-blur"
+      className="mx-auto flex max-w-2xl items-center gap-2.5 rounded-xl border border-indigo-500/15 bg-indigo-500/[0.06] px-4 py-2.5"
     >
-      <FileText className="h-4 w-4 shrink-0 text-violet-400" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/15">
+        <FileText className="h-4 w-4 text-indigo-400" />
+      </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-violet-200">{document.fileName}</p>
-        <p className="text-[11px] text-violet-400/70">
-          {document.pageCount} pages · {document.totalChunks} chunks · {Math.round(document.totalChars / 1000)}k chars
+        <p className="truncate text-[13px] font-medium text-slate-200">{document.fileName}</p>
+        <p className="text-[11px] text-slate-500">
+          {document.pageCount} pages · {document.totalChunks} chunks
         </p>
       </div>
       <button
         onClick={() => void removeDocument()}
-        className="rounded-lg p-1 text-violet-400/60 transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+        className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
         aria-label="Remove document"
-        title="Remove document"
       >
         <X className="h-4 w-4" />
       </button>
@@ -60,29 +62,30 @@ function DocumentBadge(): React.ReactNode {
   );
 }
 
-/** Dark-themed top nav for the LLM chat page */
+/** Minimal top nav */
 function LLMTopNav(): React.ReactNode {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a14]/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <Link href="/" className="mr-1 inline-flex shrink-0 items-center gap-2 rounded-md">
-          <BrandLogo size={32} />
-          <span className="text-sm font-semibold tracking-tight text-slate-200">Private LLM</span>
+    <header className="sticky top-0 z-40 border-b border-white/[0.04] bg-[#0a0a12]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-12 w-full max-w-7xl items-center gap-3 px-4">
+        <Link href="/" className="inline-flex shrink-0 items-center gap-2">
+          <BrandLogo size={28} />
+          <span className="text-[13px] font-semibold text-slate-300">Private LLM</span>
         </Link>
-        <nav className="flex min-w-0 flex-1 items-center gap-1" aria-label="Main navigation">
-          <Link href="/" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
+        <div className="flex-1" />
+        <nav className="flex items-center gap-0.5" aria-label="Main navigation">
+          <Link href="/" className="rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 transition-colors hover:bg-white/[0.04] hover:text-slate-300">
             Home
           </Link>
-          <Link href="/excel" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
-            Excel Flow
+          <Link href="/excel" className="rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 transition-colors hover:bg-white/[0.04] hover:text-slate-300">
+            Excel
           </Link>
-          <Link href="/pdf" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
+          <Link href="/pdf" className="rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 transition-colors hover:bg-white/[0.04] hover:text-slate-300">
             PDF
           </Link>
-          <Link href="/docx" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
+          <Link href="/docx" className="rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 transition-colors hover:bg-white/[0.04] hover:text-slate-300">
             DOCX
           </Link>
-          <span className="flex items-center gap-1.5 rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-400 ring-1 ring-indigo-500/20" aria-current="page">
+          <span className="flex items-center gap-1.5 rounded-lg bg-indigo-500/10 px-2.5 py-1.5 text-[12px] font-medium text-indigo-400 ring-1 ring-indigo-500/15" aria-current="page">
             <Sparkles className="h-3 w-3" />
             AI Chat
           </span>
@@ -92,24 +95,19 @@ function LLMTopNav(): React.ReactNode {
   );
 }
 
-/** Animated background blobs */
+/** Subtle animated background */
 function AnimatedBackground(): React.ReactNode {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden">
       <motion.div
-        className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-violet-600/8 blur-3xl"
-        animate={{ x: [0, 30, 0], y: [0, 20, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute -right-32 top-1/4 h-80 w-80 rounded-full bg-indigo-600/8 blur-3xl"
-        animate={{ x: [0, -25, 0], y: [0, 30, 0] }}
+        className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-indigo-600/[0.04] blur-[100px]"
+        animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
         transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-600/6 blur-3xl"
-        animate={{ x: [0, 20, 0], y: [0, -20, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -right-40 top-1/3 h-[400px] w-[400px] rounded-full bg-violet-600/[0.04] blur-[100px]"
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
       />
     </div>
   );
@@ -156,10 +154,7 @@ function LLMChat(): React.ReactNode {
 
   useEffect(() => {
     function handleGlobalKeyDown(e: globalThis.KeyboardEvent): void {
-      if (e.key === 'l' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        clearChat();
-      }
+      if (e.key === 'l' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); clearChat(); }
       if (e.key === 'Escape' && isLoading) stopGeneration();
     }
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -170,7 +165,7 @@ function LLMChat(): React.ReactNode {
     setInput(e.target.value);
     const el = e.target;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, []);
 
   const handleSubmit = useCallback((e?: FormEvent): void => {
@@ -219,48 +214,44 @@ function LLMChat(): React.ReactNode {
   const lastAssistantIdx = messages.findLastIndex((m) => m.role === 'assistant');
   const hasStreamingMsg = messages.some((m) => m.status === 'streaming');
   const showThinking = isLoading && !hasStreamingMsg;
+  const canSend = input.trim().length > 0 && !isLoading;
 
   return (
     <div
-      className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4"
+      className="flex flex-1 flex-col overflow-hidden"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Drag overlay */}
       <AnimatePresence>
         {isDragging && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-violet-500/30 bg-slate-900/90 px-12 py-10 shadow-2xl"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-indigo-500/30 bg-[#0d0d1a]/95 px-14 py-12 shadow-2xl"
             >
-              <Upload className="h-10 w-10 text-violet-400" />
+              <Upload className="h-10 w-10 text-indigo-400" />
               <p className="text-lg font-medium text-white">Drop PDF here</p>
-              <p className="text-sm text-slate-400">Upload a document to chat about it</p>
+              <p className="text-sm text-slate-500">Upload a document to chat about it</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {document && <div className="pt-4"><DocumentBadge /></div>}
+      <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" onChange={handleFileInput} className="hidden" aria-hidden="true" />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        onChange={handleFileInput}
-        className="hidden"
-        aria-hidden="true"
-      />
+      {/* Document badge */}
+      {document && <div className="px-4 pt-3"><DocumentBadge /></div>}
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin py-6" role="log" aria-live="polite" aria-label="Chat messages">
+      <div className="flex-1 overflow-y-auto scrollbar-thin" role="log" aria-live="polite" aria-label="Chat messages">
         {isEmpty ? (
           <LLMEmptyState
             onSuggestion={handleSuggestion}
@@ -268,7 +259,7 @@ function LLMChat(): React.ReactNode {
             document={document}
           />
         ) : (
-          <div className="space-y-1">
+          <div className="mx-auto max-w-2xl px-4 py-6">
             {messages.map((msg, idx) => (
               <LLMMessageBubble
                 key={msg.id}
@@ -290,14 +281,10 @@ function LLMChat(): React.ReactNode {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="mx-3 flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 backdrop-blur"
+                  className="mt-2 flex items-center justify-between rounded-xl border border-red-500/15 bg-red-500/[0.06] px-4 py-2.5"
                 >
-                  <span className="text-sm text-red-400">{error}</span>
-                  <button
-                    onClick={dismissError}
-                    className="ml-2 rounded p-0.5 text-red-400/60 transition-colors hover:bg-red-500/20 hover:text-red-300"
-                    aria-label="Dismiss error"
-                  >
+                  <span className="text-[13px] text-red-400">{error}</span>
+                  <button onClick={dismissError} className="rounded-lg p-1 text-red-400/50 hover:bg-red-500/10 hover:text-red-300" aria-label="Dismiss error">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </motion.div>
@@ -308,79 +295,77 @@ function LLMChat(): React.ReactNode {
         )}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-white/10 py-4">
+      {/* Input area — ChatGPT-style centered */}
+      <div className="mx-auto w-full max-w-2xl px-4 pb-4 pt-2">
         {isUploading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-3 flex items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2"
-          >
-            <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
-            <span className="text-sm text-violet-300">Processing PDF...</span>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-3 flex items-center gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/[0.06] px-4 py-2.5">
+            <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
+            <span className="text-[13px] text-indigo-300">Processing PDF...</span>
           </motion.div>
         )}
         <form onSubmit={handleSubmit} className="relative">
-          <div className="flex items-end gap-2">
-            <div className="relative flex-1">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={document ? `Ask about "${document.fileName}"...` : 'Ask anything...'}
-                rows={1}
-                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-12 text-sm text-slate-200 placeholder:text-slate-500 backdrop-blur focus:border-violet-500/40 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-                style={{ maxHeight: '160px' }}
-                aria-label="Chat message input"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-2.5 left-2.5 rounded-lg p-1.5 text-slate-500 transition-all hover:bg-white/10 hover:text-slate-300"
-                aria-label="Upload PDF"
-                title="Upload PDF for document Q&A"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
-              {isLoading ? (
+          <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-lg shadow-black/20 transition-colors focus-within:border-indigo-500/25 focus-within:bg-white/[0.04]">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={document ? `Ask about "${document.fileName}"...` : 'Message Private LLM...'}
+              rows={1}
+              className="w-full resize-none bg-transparent px-4 pb-2 pt-3.5 text-[14.5px] text-slate-200 placeholder:text-slate-600 focus:outline-none"
+              style={{ maxHeight: '200px' }}
+              aria-label="Chat message input"
+            />
+            <div className="flex items-center justify-between px-3 pb-2.5">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={stopGeneration}
-                  className="absolute bottom-2.5 right-2.5 rounded-lg bg-red-500/80 p-1.5 text-white transition-all hover:bg-red-500"
-                  aria-label="Stop generation"
-                  title="Stop (Esc)"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
+                  aria-label="Upload PDF"
+                  title="Upload PDF"
                 >
-                  <Square className="h-4 w-4" />
+                  <Paperclip className="h-4 w-4" />
                 </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={!input.trim()}
-                  className="absolute bottom-2.5 right-2.5 rounded-lg bg-violet-600 p-1.5 text-white transition-all hover:bg-violet-500 disabled:opacity-30"
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              )}
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearChat}
+                    className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
+                    title="New chat (Ctrl+L)"
+                    aria-label="New chat"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isLoading ? (
+                  <button
+                    type="button"
+                    onClick={stopGeneration}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-600 text-white transition-colors hover:bg-slate-500"
+                    aria-label="Stop generation"
+                    title="Stop (Esc)"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!canSend}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white transition-all hover:bg-indigo-500 disabled:bg-white/[0.06] disabled:text-slate-600"
+                    aria-label="Send message"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
-            {messages.length > 0 && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                type="button"
-                onClick={clearChat}
-                className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-500 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
-                title="Clear chat (Ctrl+L)"
-                aria-label="Clear chat history"
-              >
-                <Trash2 className="h-4 w-4" />
-              </motion.button>
-            )}
           </div>
         </form>
-        <p className="mt-2 text-center text-[11px] text-slate-600">
-          Private LLM · Drop a PDF to chat about it · Esc to stop · Ctrl+L to clear
+        <p className="mt-2.5 text-center text-[11px] text-slate-600">
+          Private LLM can make mistakes. Verify important information.
         </p>
       </div>
     </div>
@@ -389,15 +374,14 @@ function LLMChat(): React.ReactNode {
 
 export default function LLMPage(): React.ReactNode {
   return (
-    <div className="relative min-h-screen bg-[#0a0a14]">
+    <div className="relative min-h-screen bg-[#0a0a12]">
       <AnimatedBackground />
       <div className="relative z-10 flex h-screen flex-col">
-        {/* Dark top nav for LLM page */}
         <LLMTopNav />
         <Suspense
           fallback={
             <div className="flex flex-1 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
             </div>
           }
         >
