@@ -30,8 +30,8 @@ export class BasicAuthGuard implements CanActivate {
     const username = decoded.slice(0, colonIdx);
     const password = decoded.slice(colonIdx + 1);
 
-    const expectedUser = this.config.get<string>('BASIC_AUTH_USERNAME') ?? '';
-    const expectedPass = this.config.get<string>('BASIC_AUTH_PASSWORD') ?? '';
+    const expectedUser = (this.config.get<string>('BASIC_AUTH_USERNAME') ?? '').replace(/^"|"$/g, '');
+    const expectedPass = (this.config.get<string>('BASIC_AUTH_PASSWORD') ?? '').replace(/^"|"$/g, '');
 
     // Constant-time comparison to prevent timing attacks
     const userMatch = this.safeCompare(username, expectedUser);
