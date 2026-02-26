@@ -45,7 +45,10 @@ async function bootstrap(): Promise<void> {
 
   // CORS — support multiple origins for dev + production
   const rawOrigins = process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
-  const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+  const allowedOrigins = rawOrigins
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (server-to-server, health checks, curl)
@@ -53,7 +56,12 @@ async function bootstrap(): Promise<void> {
         callback(null, true);
         return;
       }
-      if (allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      // Allow exact match or any *.vercel.app preview deploy
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith('.vercel.app')
+      ) {
         callback(null, true);
       } else {
         logger.warn(`CORS blocked origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`);
