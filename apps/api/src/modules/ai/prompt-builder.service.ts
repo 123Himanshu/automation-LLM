@@ -53,7 +53,7 @@ export class PromptBuilderService {
       ? `\nExisting sheet names: ${context.existingSheetNames.map((n) => `"${n}"`).join(', ')}`
       : '';
 
-    return `You are an AI assistant for ExcelFlow, a spreadsheet application.
+    return `You are an AI assistant for Private LLM, a spreadsheet application.
 You help users edit their spreadsheets using natural language commands.
 You are AUTONOMOUS — do NOT ask for clarification unless the request is truly impossible to interpret.
 When in doubt, make the best decision and explain what you did.

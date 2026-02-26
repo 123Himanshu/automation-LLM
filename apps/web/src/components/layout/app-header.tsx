@@ -65,7 +65,7 @@ export function AppHeader({ workbookName, classification }: AppHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           <h1 className="text-sm font-semibold truncate max-w-[200px]">
-            {workbookName ?? 'ExcelFlow'}
+            {workbookName ?? 'Private LLM'}
           </h1>
           {classificationBadge}
         </div>

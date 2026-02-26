@@ -25,7 +25,7 @@ function estimateTokens(text: string): number {
 /** Max tokens to allocate for conversation history */
 const HISTORY_TOKEN_BUDGET = 4000;
 
-const SYSTEM_PROMPT = `You are ExcelFlow AI — a helpful, knowledgeable assistant built into a productivity suite that handles spreadsheets, PDFs, and DOCX files.
+const SYSTEM_PROMPT = `You are Private LLM AI — a helpful, knowledgeable assistant built into a private productivity suite that handles spreadsheets, PDFs, and DOCX files.
 
 You can answer general questions on any topic: coding, data analysis, writing, math, science, business, and more.
 
@@ -34,7 +34,7 @@ Guidelines:
 - For code, always specify the language in fenced code blocks.
 - For math, show step-by-step work.
 - For data questions, suggest formulas or approaches.
-- If the user asks about ExcelFlow features, explain what the app can do (Excel editing, PDF editing, DOCX editing, AI assistance, summaries, exports).
+- If the user asks about Private LLM features, explain what the app can do (Excel editing, PDF editing, DOCX editing, AI assistance, summaries, exports).
 - Be friendly and professional.`;
 
 function buildDocumentSystemPrompt(
@@ -43,7 +43,7 @@ function buildDocumentSystemPrompt(
   chunkCount: number,
   context: string,
 ): string {
-  return `You are ExcelFlow AI — a helpful assistant with access to a user-uploaded document.
+  return `You are Private LLM AI — a helpful assistant with access to a user-uploaded document.
 
 The user has uploaded "${fileName}" (${pageCount} pages, ${chunkCount} text sections extracted).
 Relevant excerpts from the document are provided below as context. Use ONLY these excerpts to answer document-related questions. If the answer is not in the provided context, say so clearly.

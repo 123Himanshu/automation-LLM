@@ -7,8 +7,9 @@ import '@/styles/globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ExcelFlow',
-  description: 'Professional Excel-like web application with AI assistant',
+  title: 'Private LLM',
+  description: 'Your private AI productivity suite — chat, documents, spreadsheets, and more.',
+  icons: { icon: '/logo.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

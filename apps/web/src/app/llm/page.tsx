@@ -26,8 +26,9 @@ import { useLLMStore } from '@/stores/llm-store';
 import { LLMEmptyState } from '@/components/chat/llm-empty-state';
 import { LLMMessageBubble } from '@/components/chat/llm-message-bubble';
 import { ThinkingIndicator } from '@/components/chat/thinking-indicator';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
-import { FileSpreadsheet, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 function DocumentBadge(): React.ReactNode {
   const document = useLLMStore((s) => s.document);
@@ -65,10 +66,8 @@ function LLMTopNav(): React.ReactNode {
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a14]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
         <Link href="/" className="mr-1 inline-flex shrink-0 items-center gap-2 rounded-md">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/20 ring-1 ring-violet-500/20">
-            <FileSpreadsheet className="h-4 w-4 text-violet-400" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight text-slate-200">ExcelFlow</span>
+          <BrandLogo size={32} />
+          <span className="text-sm font-semibold tracking-tight text-slate-200">Private LLM</span>
         </Link>
         <nav className="flex min-w-0 flex-1 items-center gap-1" aria-label="Main navigation">
           <Link href="/" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
@@ -83,7 +82,7 @@ function LLMTopNav(): React.ReactNode {
           <Link href="/docx" className="rounded-full px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
             DOCX
           </Link>
-          <span className="flex items-center gap-1.5 rounded-full bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-400 ring-1 ring-violet-500/20" aria-current="page">
+          <span className="flex items-center gap-1.5 rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-400 ring-1 ring-indigo-500/20" aria-current="page">
             <Sparkles className="h-3 w-3" />
             AI Chat
           </span>
@@ -381,7 +380,7 @@ function LLMChat(): React.ReactNode {
           </div>
         </form>
         <p className="mt-2 text-center text-[11px] text-slate-600">
-          Powered by Groq AI · Drop a PDF to chat about it · Esc to stop · Ctrl+L to clear
+          Private LLM · Drop a PDF to chat about it · Esc to stop · Ctrl+L to clear
         </p>
       </div>
     </div>

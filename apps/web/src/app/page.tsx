@@ -14,14 +14,15 @@ import {
 } from 'lucide-react';
 import { LightPageShell } from '@/components/layout/light-page-shell';
 import { Button } from '@/components/ui/button';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 const workspaces = [
   {
     title: 'Excel Flow',
     description: 'Create and edit spreadsheets with formula help, revision history, and AI-assisted operations.',
     href: '/excel',
-    accent: 'from-blue-50 to-cyan-50 border-blue-200 hover:border-blue-300',
-    iconBg: 'from-blue-500 to-cyan-500',
+    accent: 'from-indigo-50 to-blue-50 border-indigo-200 hover:border-indigo-300',
+    iconBg: 'from-indigo-500 to-blue-500',
     icon: FileSpreadsheet,
     cta: 'Open Excel Workspace',
   },
@@ -29,8 +30,8 @@ const workspaces = [
     title: 'PDF Workspace',
     description: 'Upload PDF files, apply style-preserving edits, collaborate with AI, and regenerate downloadable files.',
     href: '/pdf',
-    accent: 'from-indigo-50 to-sky-50 border-indigo-200 hover:border-indigo-300',
-    iconBg: 'from-indigo-500 to-sky-500',
+    accent: 'from-blue-50 to-sky-50 border-blue-200 hover:border-blue-300',
+    iconBg: 'from-blue-500 to-sky-500',
     icon: FileText,
     cta: 'Open PDF Workspace',
   },
@@ -38,17 +39,17 @@ const workspaces = [
     title: 'DOCX Workspace',
     description: 'Edit DOCX files in real time, apply AI-assisted changes, and regenerate while preserving document styling.',
     href: '/docx',
-    accent: 'from-cyan-50 to-emerald-50 border-cyan-200 hover:border-cyan-300',
-    iconBg: 'from-cyan-500 to-emerald-500',
+    accent: 'from-sky-50 to-cyan-50 border-sky-200 hover:border-sky-300',
+    iconBg: 'from-sky-500 to-cyan-500',
     icon: FileText,
     cta: 'Open DOCX Workspace',
   },
   {
     title: 'AI Assistant',
-    description: 'Ask anything — coding help, data analysis, writing, math. Powered by Groq with full conversation history.',
+    description: 'Ask anything — coding help, data analysis, writing, math. Private AI chat with full conversation history.',
     href: '/llm',
-    accent: 'from-violet-50 to-purple-50 border-violet-200 hover:border-violet-300',
-    iconBg: 'from-violet-500 to-purple-500',
+    accent: 'from-violet-50 to-indigo-50 border-violet-200 hover:border-violet-300',
+    iconBg: 'from-violet-500 to-indigo-500',
     icon: MessageSquare,
     cta: 'Open AI Chat',
   },
@@ -94,7 +95,7 @@ export default function HomePage(): React.ReactNode {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="light-card relative overflow-hidden rounded-3xl p-6 sm:p-8 md:p-10"
       >
-        <div className="absolute -left-24 top-4 h-44 w-44 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="absolute -left-24 top-4 h-44 w-44 rounded-full bg-indigo-100/70 blur-3xl" />
         <div className="absolute -right-20 bottom-[-30px] h-48 w-48 rounded-full bg-violet-100/60 blur-3xl" />
 
         <div className="relative space-y-5">
@@ -102,10 +103,10 @@ export default function HomePage(): React.ReactNode {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+            className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Unified AI Productivity Suite
+            Private AI Productivity Suite
           </motion.div>
 
           <motion.h1
@@ -114,7 +115,7 @@ export default function HomePage(): React.ReactNode {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl"
           >
-            One home for spreadsheet, PDF, DOCX &amp; AI workflows
+            Your private hub for AI chat, documents &amp; spreadsheets
           </motion.h1>
 
           <motion.p
@@ -124,7 +125,7 @@ export default function HomePage(): React.ReactNode {
             className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base"
           >
             Choose a workspace below or ask the AI assistant anything — coding, data analysis,
-            writing, math, and more.
+            writing, math, and more. All conversations stay private.
           </motion.p>
 
           {/* Search box */}
@@ -134,7 +135,7 @@ export default function HomePage(): React.ReactNode {
             transition={{ delay: 0.5, duration: 0.5 }}
             className="relative max-w-2xl"
           >
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-2 shadow-md transition-all focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 focus-within:shadow-lg">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-2 shadow-md transition-all focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:shadow-lg">
               <Search className="ml-4 h-5 w-5 shrink-0 text-slate-400" />
               <input
                 type="text"
@@ -148,7 +149,7 @@ export default function HomePage(): React.ReactNode {
               <button
                 onClick={handleSearch}
                 disabled={!query.trim()}
-                className="mr-1 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-700 hover:shadow-md disabled:opacity-40"
+                className="mr-1 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-indigo-700 hover:shadow-md disabled:opacity-40"
                 aria-label="Search"
               >
                 <ArrowRight className="h-5 w-5" />
@@ -164,7 +165,7 @@ export default function HomePage(): React.ReactNode {
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => router.push(`/llm?q=${encodeURIComponent(p)}`)}
-                  className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-slate-500 transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
+                  className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-slate-500 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600"
                 >
                   {p}
                 </motion.button>

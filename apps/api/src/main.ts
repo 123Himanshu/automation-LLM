@@ -27,7 +27,7 @@ async function bootstrap(): Promise<void> {
   // Swagger / OpenAPI — only in development (requires @fastify/static)
   if (process.env['NODE_ENV'] !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('ExcelFlow API')
+      .setTitle('Private LLM API')
       .setDescription('Spreadsheet engine with AI assistant, formula recalculation, summary generation, and export capabilities.')
       .setVersion('0.1.0')
       .addBasicAuth()
@@ -81,7 +81,7 @@ async function bootstrap(): Promise<void> {
 
   const port = parseInt(process.env['PORT'] ?? '4000', 10);
   await app.listen(port, '0.0.0.0');
-  logger.log(`ExcelFlow API running on http://localhost:${port}`);
+  logger.log(`Private LLM API running on http://localhost:${port}`);
 }
 
 bootstrap().catch((err: unknown) => {

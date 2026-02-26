@@ -152,7 +152,7 @@ export class AISummaryService implements OnApplicationBootstrap {
     errorDescription: string,
     sheetContext: string,
   ): Promise<Action[]> {
-    const systemPrompt = `You are a formula correction assistant for ExcelFlow.
+    const systemPrompt = `You are a formula correction assistant for Private LLM.
 You receive a list of cells with formula errors and must return corrective SET_CELL actions.
 
 ${sheetContext}
