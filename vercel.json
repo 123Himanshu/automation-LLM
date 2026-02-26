@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd excelflow && npx turbo run build --filter=@excelflow/web",
+  "installCommand": "cd excelflow && npm ci --legacy-peer-deps",
+  "framework": "nextjs",
+  "outputDirectory": "excelflow/apps/web/.next"
+}
