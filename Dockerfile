@@ -54,13 +54,12 @@ RUN mkdir -p /app/apps/api/uploads /app/apps/api/exports
 WORKDIR /app/apps/api
 
 ENV NODE_ENV=production
-ENV PORT=4000
 ENV UPLOAD_DIR=./uploads
 ENV EXPORT_DIR=./exports
 
-EXPOSE 4000
+EXPOSE ${PORT:-4000}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:${PORT}/api/health || exit 1
+  CMD wget -q --spider http://localhost:${PORT:-4000}/api/health || exit 1
 
 CMD ["node", "dist/main.js"]
