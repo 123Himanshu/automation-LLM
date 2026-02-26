@@ -40,10 +40,11 @@ cp apps/api/.env.example apps/api/.env
 - `DATABASE_URL`
 - `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`
 - `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (and optional `S3_ENDPOINT`)
-- AI config (optional, but needed for AI features):
-  - `AI_PROVIDER=openai` with `AI_API_KEY`
-  - or `AI_PROVIDER=groq` with `GROQ_API_KEY`
-  - optional `AI_MODEL` override (`llama-3.3-70b-versatile` works well on Groq)
+- AI config (dual-provider — both can be set simultaneously):
+  - `AI_API_KEY` — OpenAI key (used for Excel/spreadsheet AI features)
+  - `OPENAI_MODEL` — defaults to `gpt-4o`
+  - `GROQ_API_KEY` — Groq key (used for LLM chat, PDF, DOCX workspaces)
+  - `AI_MODEL` — Groq model, defaults to `llama-3.3-70b-versatile`
 
 4. (Optional) Create `apps/web/.env.local` if you need custom frontend config:
 

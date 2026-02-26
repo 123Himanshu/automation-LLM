@@ -20,70 +20,111 @@ export interface LLMResponse {
   finishReason: string;
 }
 
-type AIProvider = 'openai' | 'groq';
+/** Which LLM backend to route a request to */
+export type LLMTarget = 'openai' | 'groq';
 
+interface ClientSlot {
+  client: OpenAI;
+  model: string;
+  maxTokens: number;
+  label: string;
+}
+
+/**
+ * Dual-provider LLM client.
+ *
+ * - OpenAI  → used for Excel/spreadsheet AI features (structured JSON, tool calls)
+ * - Groq    → used for LLM chat, PDF workspace, DOCX workspace (fast inference)
+ *
+ * Each consumer picks a target via `chat(req, 'groq')` or defaults to OpenAI.
+ */
 @Injectable()
 export class OpenAIClientService implements OnModuleInit {
   private readonly logger = new Logger(OpenAIClientService.name);
-  private client: OpenAI | null = null;
-  private provider: AIProvider = 'openai';
-  private model = 'gpt-4o';
-  private maxTokens = 4096;
+  private openaiSlot: ClientSlot | null = null;
+  private groqSlot: ClientSlot | null = null;
+  /** Fallback default when no target is specified */
+  private defaultTarget: LLMTarget = 'openai';
 
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit(): void {
-    this.provider = (this.config.get<string>('AI_PROVIDER') as AIProvider | undefined) ?? 'openai';
-
-    const openAiApiKey = this.config.get<string>('AI_API_KEY');
-    const groqApiKey = this.config.get<string>('GROQ_API_KEY');
-    const baseUrlFromEnv = this.config.get<string>('AI_BASE_URL');
-
-    const defaultModel = this.provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-4o';
-    this.model = this.config.get<string>('AI_MODEL') ?? defaultModel;
-
     const configuredMaxTokens = this.config.get<number>('AI_MAX_TOKENS');
-    this.maxTokens =
+    const maxTokens =
       typeof configuredMaxTokens === 'number' && Number.isFinite(configuredMaxTokens)
         ? configuredMaxTokens
         : 4096;
 
-    const apiKey = this.provider === 'groq' ? (groqApiKey ?? openAiApiKey) : openAiApiKey;
-    const baseURL =
-      this.provider === 'groq'
-        ? (baseUrlFromEnv ?? 'https://api.groq.com/openai/v1')
-        : baseUrlFromEnv;
+    // ── OpenAI slot ──
+    const openAiKey = this.config.get<string>('AI_API_KEY');
+    const openAiBaseUrl = this.config.get<string>('AI_BASE_URL');
+    const openAiModel = this.config.get<string>('OPENAI_MODEL') ?? 'gpt-4o';
 
-    if (apiKey) {
-      this.client = new OpenAI({
-        apiKey,
-        ...(baseURL ? { baseURL } : {}),
-        timeout: 120_000,
-      });
-      this.logger.log(
-        `LLM client initialized (provider: ${this.provider}, model: ${this.model}${baseURL ? `, baseURL: ${baseURL}` : ''})`,
-      );
+    if (openAiKey) {
+      this.openaiSlot = {
+        client: new OpenAI({
+          apiKey: openAiKey,
+          ...(openAiBaseUrl ? { baseURL: openAiBaseUrl } : {}),
+          timeout: 120_000,
+        }),
+        model: openAiModel,
+        maxTokens,
+        label: `OpenAI (${openAiModel})`,
+      };
+      this.logger.log(`OpenAI client initialized (model: ${openAiModel})`);
     } else {
-      this.logger.warn(
-        this.provider === 'groq'
-          ? 'No Groq key found (set GROQ_API_KEY or AI_API_KEY) - AI features disabled'
-          : 'AI_API_KEY not set - AI features disabled',
-      );
+      this.logger.warn('AI_API_KEY not set — OpenAI features disabled');
     }
+
+    // ── Groq slot ──
+    const groqKey = this.config.get<string>('GROQ_API_KEY');
+    const groqModel = this.config.get<string>('AI_MODEL') ?? 'llama-3.3-70b-versatile';
+
+    if (groqKey) {
+      this.groqSlot = {
+        client: new OpenAI({
+          apiKey: groqKey,
+          baseURL: 'https://api.groq.com/openai/v1',
+          timeout: 120_000,
+        }),
+        model: groqModel,
+        maxTokens,
+        label: `Groq (${groqModel})`,
+      };
+      this.logger.log(`Groq client initialized (model: ${groqModel})`);
+    } else {
+      this.logger.warn('GROQ_API_KEY not set — Groq features disabled');
+    }
+
+    // Determine default: prefer whatever is available
+    if (this.openaiSlot) this.defaultTarget = 'openai';
+    else if (this.groqSlot) this.defaultTarget = 'groq';
   }
 
-  isAvailable(): boolean {
-    return this.client !== null;
+  /** Check if at least one provider is configured */
+  isAvailable(target?: LLMTarget): boolean {
+    if (target) return this.getSlot(target) !== null;
+    return this.openaiSlot !== null || this.groqSlot !== null;
   }
 
-  async chat(request: LLMRequest): Promise<LLMResponse> {
-    if (!this.client) {
+  private getSlot(target?: LLMTarget): ClientSlot | null {
+    const t = target ?? this.defaultTarget;
+    if (t === 'groq') return this.groqSlot ?? this.openaiSlot;
+    return this.openaiSlot ?? this.groqSlot;
+  }
+
+  private requireSlot(target?: LLMTarget): ClientSlot {
+    const slot = this.getSlot(target);
+    if (!slot) {
       throw new Error(
-        this.provider === 'groq'
-          ? 'LLM client not initialized - set GROQ_API_KEY (or AI_API_KEY) in .env'
-          : 'LLM client not initialized - set AI_API_KEY in .env',
+        'No LLM client initialized — set AI_API_KEY (OpenAI) and/or GROQ_API_KEY (Groq) in .env',
       );
     }
+    return slot;
+  }
+
+  async chat(request: LLMRequest, target?: LLMTarget): Promise<LLMResponse> {
+    const slot = this.requireSlot(target);
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: request.systemPrompt },
@@ -91,17 +132,17 @@ export class OpenAIClientService implements OnModuleInit {
       { role: 'user', content: request.userMessage },
     ];
 
-    const completion = await this.client.chat.completions.create({
-      model: this.model,
+    const completion = await slot.client.chat.completions.create({
+      model: slot.model,
       messages,
-      max_tokens: request.maxTokens ?? this.maxTokens,
+      max_tokens: request.maxTokens ?? slot.maxTokens,
       temperature: request.temperature ?? 0.2,
       ...(request.responseFormat === 'json' ? { response_format: { type: 'json_object' } } : {}),
     });
 
     const choice = completion.choices[0];
     if (!choice) {
-      throw new Error(`No response from ${this.provider === 'groq' ? 'Groq' : 'OpenAI'}`);
+      throw new Error(`No response from ${slot.label}`);
     }
 
     return {
@@ -118,14 +159,8 @@ export class OpenAIClientService implements OnModuleInit {
   }
 
   /** Create a streaming chat completion — returns an async iterable of chunks */
-  async chatStream(request: LLMRequest): Promise<Stream<ChatCompletionChunk>> {
-    if (!this.client) {
-      throw new Error(
-        this.provider === 'groq'
-          ? 'LLM client not initialized - set GROQ_API_KEY (or AI_API_KEY) in .env'
-          : 'LLM client not initialized - set AI_API_KEY in .env',
-      );
-    }
+  async chatStream(request: LLMRequest, target?: LLMTarget): Promise<Stream<ChatCompletionChunk>> {
+    const slot = this.requireSlot(target);
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: request.systemPrompt },
@@ -133,10 +168,10 @@ export class OpenAIClientService implements OnModuleInit {
       { role: 'user', content: request.userMessage },
     ];
 
-    return this.client.chat.completions.create({
-      model: this.model,
+    return slot.client.chat.completions.create({
+      model: slot.model,
       messages,
-      max_tokens: request.maxTokens ?? this.maxTokens,
+      max_tokens: request.maxTokens ?? slot.maxTokens,
       temperature: request.temperature ?? 0.2,
       stream: true,
     });

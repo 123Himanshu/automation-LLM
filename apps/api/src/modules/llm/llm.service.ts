@@ -112,10 +112,10 @@ export class LLMService {
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    if (!this.openai.isAvailable()) {
+    if (!this.openai.isAvailable('groq')) {
       return {
         role: 'assistant',
-        content: 'AI is not configured. Please set the appropriate API key (`GROQ_API_KEY` or `AI_API_KEY`) in the server environment variables.',
+        content: 'AI is not configured. Please set `GROQ_API_KEY` in the server environment variables.',
         timestamp: new Date().toISOString(),
       };
     }
@@ -129,7 +129,7 @@ export class LLMService {
       conversationHistory,
       temperature: 0.4,
       responseFormat: 'text',
-    });
+    }, 'groq');
 
     this.logger.log(`LLM chat — tokens: ${response.usage?.totalTokens ?? '?'}`);
 
@@ -142,13 +142,13 @@ export class LLMService {
 
   /** Stream a chat response via SSE */
   async chatStream(request: ChatRequest, reply: FastifyReply): Promise<void> {
-    if (!this.openai.isAvailable()) {
+    if (!this.openai.isAvailable('groq')) {
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
       });
-      const errData = JSON.stringify({ type: 'error', content: 'AI is not configured.' });
+      const errData = JSON.stringify({ type: 'error', content: 'AI is not configured. Set GROQ_API_KEY.' });
       reply.raw.write(`data: ${errData}\n\n`);
       reply.raw.end();
       return;
@@ -170,7 +170,7 @@ export class LLMService {
         userMessage: request.message,
         conversationHistory,
         temperature: 0.4,
-      });
+      }, 'groq');
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content;

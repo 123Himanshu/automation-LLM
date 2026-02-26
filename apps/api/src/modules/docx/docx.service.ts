@@ -178,7 +178,7 @@ export class DocxService {
         conversationHistory,
         temperature: 0.3,
         responseFormat: 'text',
-      });
+      }, 'groq');
 
       const fullContent = response.content;
       const docMatch = fullContent.match(/<document>([\s\S]*?)<\/document>/);
