@@ -1,29 +1,26 @@
-
-
 # ── Stage 1: Build ──
 FROM node:20-slim AS builder
 WORKDIR /app
 
+COPY package.json package-lock.json ./
+COPY turbo.json ./
+COPY tsconfig.base.json ./
 
-COPY excelflow/package.json excelflow/package-lock.json ./
-COPY excelflow/turbo.json ./
-COPY excelflow/tsconfig.base.json ./
-
-COPY excelflow/packages/shared/package.json ./packages/shared/
-COPY excelflow/apps/api/package.json ./apps/api/
-COPY excelflow/apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 
 # Install all dependencies (hoisted to /app/node_modules)
 RUN npm ci --legacy-peer-deps
 
 # Copy shared package source and build it
-COPY excelflow/packages/shared/ ./packages/shared/
+COPY packages/shared/ ./packages/shared/
 WORKDIR /app/packages/shared
 RUN npx tsc
 
 # Copy API source
 WORKDIR /app
-COPY excelflow/apps/api/ ./apps/api/
+COPY apps/api/ ./apps/api/
 
 # Generate Prisma client + build NestJS
 WORKDIR /app/apps/api
@@ -45,14 +42,12 @@ WORKDIR /app
 
 COPY --from=builder /app ./
 
-
 RUN rm -rf packages/shared/src apps/api/src apps/web \
     tsconfig.base.json turbo.json .turbo
 RUN npm prune --omit=dev --legacy-peer-deps 2>/dev/null || true
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 RUN npx playwright install chromium 2>/dev/null || true
-
 
 RUN mkdir -p /app/apps/api/uploads /app/apps/api/exports
 

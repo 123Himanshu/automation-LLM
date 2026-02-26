@@ -1,5 +1,3 @@
-# ─── Root .dockerignore ───
-
 # Dependencies (reinstalled in Docker)
 **/node_modules
 
@@ -32,12 +30,12 @@ Thumbs.db
 # Test & coverage
 **/coverage
 
-# Frontend source (not needed, but keep package.json for workspace resolution)
-excelflow/apps/web/src
-excelflow/apps/web/public
-excelflow/apps/web/.next
-excelflow/apps/web/next.config.ts
-excelflow/apps/web/tailwind.config.ts
-excelflow/apps/web/postcss.config.js
-excelflow/apps/web/tsconfig.json
-excelflow/apps/web/next-env.d.ts
+# Frontend source (not needed for API Docker image)
+apps/web/src
+apps/web/public
+apps/web/.next
+apps/web/next.config.ts
+apps/web/tailwind.config.ts
+apps/web/postcss.config.js
+apps/web/tsconfig.json
+apps/web/next-env.d.ts
