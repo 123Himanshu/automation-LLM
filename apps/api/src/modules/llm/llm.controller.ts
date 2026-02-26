@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from '../../common/guards/basic-auth.guard';
 import { LLMService } from './llm.service';
 import { LLMDocumentService } from './llm-document.service';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { PDFParse } from 'pdf-parse';
 
 interface ChatBody {
@@ -31,6 +31,15 @@ export class LLMController {
       documentId: body.documentId,
     });
     return { success: true, data: result };
+  }
+
+  @Post('chat/stream')
+  @ApiOperation({ summary: 'Streaming LLM chat via SSE' })
+  async chatStream(@Body() body: ChatBody, @Res() reply: FastifyReply) {
+    await this.llmService.chatStream(
+      { message: body.message, history: body.history, documentId: body.documentId },
+      reply,
+    );
   }
 
   @Post('document/upload')

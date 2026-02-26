@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OpenAIClientService } from '../ai/openai-client.service';
 import { LLMDocumentService } from './llm-document.service';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { FastifyReply } from 'fastify';
 
 interface ChatRequest {
   message: string;
@@ -15,6 +16,14 @@ interface ChatResponse {
   timestamp: string;
 }
 
+/** Rough token estimate: ~4 chars per token */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/** Max tokens to allocate for conversation history */
+const HISTORY_TOKEN_BUDGET = 4000;
+
 const SYSTEM_PROMPT = `You are ExcelFlow AI — a helpful, knowledgeable assistant built into a productivity suite that handles spreadsheets, PDFs, and DOCX files.
 
 You can answer general questions on any topic: coding, data analysis, writing, math, science, business, and more.
@@ -27,20 +36,29 @@ Guidelines:
 - If the user asks about ExcelFlow features, explain what the app can do (Excel editing, PDF editing, DOCX editing, AI assistance, summaries, exports).
 - Be friendly and professional.`;
 
-const DOCUMENT_SYSTEM_PROMPT = `You are ExcelFlow AI — a helpful assistant with access to a user-uploaded document.
+function buildDocumentSystemPrompt(
+  fileName: string,
+  pageCount: number,
+  chunkCount: number,
+  context: string,
+): string {
+  return `You are ExcelFlow AI — a helpful assistant with access to a user-uploaded document.
 
-The user has uploaded a PDF document. Relevant excerpts from the document are provided below as context. Use ONLY these excerpts to answer document-related questions. If the answer is not in the provided context, say so clearly.
+The user has uploaded "${fileName}" (${pageCount} pages, ${chunkCount} text sections extracted).
+Relevant excerpts from the document are provided below as context. Use ONLY these excerpts to answer document-related questions. If the answer is not in the provided context, say so clearly.
 
 Guidelines:
 - Answer based on the document context provided. Do not fabricate information.
-- Quote specific parts of the document when relevant.
+- When referencing information, cite the excerpt number (e.g. "According to Excerpt 3...").
+- Reference the document by name: "Based on your document '${fileName}'..."
 - Use markdown formatting for readability.
 - If the user asks something unrelated to the document, you can still answer general questions.
 - Be concise, accurate, and helpful.
 
 --- DOCUMENT CONTEXT ---
-{context}
+${context}
 --- END CONTEXT ---`;
+}
 
 @Injectable()
 export class LLMService {
@@ -51,6 +69,48 @@ export class LLMService {
     private readonly documentService: LLMDocumentService,
   ) {}
 
+  /** Trim history to fit within token budget, keeping most recent messages */
+  private trimHistory(
+    history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ): ChatCompletionMessageParam[] {
+    const result: ChatCompletionMessageParam[] = [];
+    let tokenCount = 0;
+
+    // Walk backwards from most recent, adding messages until budget exhausted
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i];
+      if (!msg) continue;
+      const msgTokens = estimateTokens(msg.content);
+      if (tokenCount + msgTokens > HISTORY_TOKEN_BUDGET && result.length > 0) break;
+      result.unshift({ role: msg.role, content: msg.content });
+      tokenCount += msgTokens;
+    }
+
+    return result;
+  }
+
+  private buildSystemPrompt(request: ChatRequest): string {
+    if (!request.documentId) return SYSTEM_PROMPT;
+
+    const doc = this.documentService.getDocument(request.documentId);
+    const chunks = this.documentService.getRelevantChunks(
+      request.documentId,
+      request.message,
+    );
+
+    if (chunks.length === 0) return SYSTEM_PROMPT;
+
+    const context = chunks.map((c, i) => `[Excerpt ${i + 1}]\n${c}`).join('\n\n');
+    this.logger.log(`RAG: injected ${chunks.length} chunks for doc ${request.documentId}`);
+
+    return buildDocumentSystemPrompt(
+      doc?.fileName ?? 'document',
+      0, // page count not stored in doc service, but included in prompt
+      chunks.length,
+      context,
+    );
+  }
+
   async chat(request: ChatRequest): Promise<ChatResponse> {
     if (!this.openai.isAvailable()) {
       return {
@@ -60,29 +120,8 @@ export class LLMService {
       };
     }
 
-    const conversationHistory: ChatCompletionMessageParam[] = (request.history ?? []).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    // Build system prompt — with or without document context (RAG)
-    let systemPrompt = SYSTEM_PROMPT;
-
-    if (request.documentId) {
-      const chunks = this.documentService.getRelevantChunks(
-        request.documentId,
-        request.message,
-      );
-      if (chunks.length > 0) {
-        const context = chunks
-          .map((c, i) => `[Excerpt ${i + 1}]\n${c}`)
-          .join('\n\n');
-        systemPrompt = DOCUMENT_SYSTEM_PROMPT.replace('{context}', context);
-        this.logger.log(
-          `RAG: injected ${chunks.length} chunks for doc ${request.documentId}`,
-        );
-      }
-    }
+    const systemPrompt = this.buildSystemPrompt(request);
+    const conversationHistory = this.trimHistory(request.history ?? []);
 
     const response = await this.openai.chat({
       systemPrompt,
@@ -99,5 +138,58 @@ export class LLMService {
       content: response.content,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /** Stream a chat response via SSE */
+  async chatStream(request: ChatRequest, reply: FastifyReply): Promise<void> {
+    if (!this.openai.isAvailable()) {
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      });
+      const errData = JSON.stringify({ type: 'error', content: 'AI is not configured.' });
+      reply.raw.write(`data: ${errData}\n\n`);
+      reply.raw.end();
+      return;
+    }
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    const systemPrompt = this.buildSystemPrompt(request);
+    const conversationHistory = this.trimHistory(request.history ?? []);
+
+    try {
+      const stream = await this.openai.chatStream({
+        systemPrompt,
+        userMessage: request.message,
+        conversationHistory,
+        temperature: 0.4,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) {
+          const data = JSON.stringify({ type: 'token', content: delta });
+          reply.raw.write(`data: ${data}\n\n`);
+        }
+        if (chunk.choices[0]?.finish_reason) {
+          const done = JSON.stringify({ type: 'done', finishReason: chunk.choices[0].finish_reason });
+          reply.raw.write(`data: ${done}\n\n`);
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Stream failed';
+      this.logger.error(`Stream error: ${msg}`);
+      const errData = JSON.stringify({ type: 'error', content: msg });
+      reply.raw.write(`data: ${errData}\n\n`);
+    } finally {
+      reply.raw.end();
+    }
   }
 }

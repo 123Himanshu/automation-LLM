@@ -9,6 +9,7 @@ import type {
   Sheet,
   WorkbookMeta,
 } from '@excelflow/shared';
+import { streamLLMChat } from '@/lib/llm-stream-client';
 import {
   workbookMetaResponseSchema,
   workbookListResponseSchema,
@@ -398,6 +399,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ message, history, documentId }),
     }),
+
+  /** Stream LLM chat via SSE — returns an AbortController to cancel */
+  llmChatStream: streamLLMChat,
 
   llmUploadDocument: async (
     file: File,

@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { Stream } from 'openai/streaming';
+import type { ChatCompletionChunk } from 'openai/resources/chat/completions';
 
 export interface LLMRequest {
   systemPrompt: string;
@@ -113,5 +115,30 @@ export class OpenAIClientService implements OnModuleInit {
         : undefined,
       finishReason: choice.finish_reason ?? 'unknown',
     };
+  }
+
+  /** Create a streaming chat completion — returns an async iterable of chunks */
+  async chatStream(request: LLMRequest): Promise<Stream<ChatCompletionChunk>> {
+    if (!this.client) {
+      throw new Error(
+        this.provider === 'groq'
+          ? 'LLM client not initialized - set GROQ_API_KEY (or AI_API_KEY) in .env'
+          : 'LLM client not initialized - set AI_API_KEY in .env',
+      );
+    }
+
+    const messages: ChatCompletionMessageParam[] = [
+      { role: 'system', content: request.systemPrompt },
+      ...(request.conversationHistory ?? []),
+      { role: 'user', content: request.userMessage },
+    ];
+
+    return this.client.chat.completions.create({
+      model: this.model,
+      messages,
+      max_tokens: request.maxTokens ?? this.maxTokens,
+      temperature: request.temperature ?? 0.2,
+      stream: true,
+    });
   }
 }
