@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npx turbo run build --filter=@excelflow/web",
+  "installCommand": "npm ci --legacy-peer-deps",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next"
+}
