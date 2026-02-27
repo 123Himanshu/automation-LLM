@@ -1,0 +1,36 @@
+{
+  "name": "excelflow",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/pdfkit": "^0.17.5",
+    "prettier": "^3.4.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "npm@10.8.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "@prisma/client": "^6.2.1",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "pdf-lib": "^1.17.1",
+    "pdf2json": "^4.0.2",
+    "pdfkit": "^0.17.2",
+    "puppeteer": "^24.37.5"
+  }
+}

@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .bg-app-canvas {
+    background-color: #f4f8fc;
+    background-image:
+      radial-gradient(circle at 8% 8%, rgba(14, 165, 233, 0.1), transparent 28%),
+      radial-gradient(circle at 92% 6%, rgba(59, 130, 246, 0.1), transparent 24%),
+      linear-gradient(180deg, #f8fbff 0%, #f4f8fc 45%, #f6f9fd 100%);
+  }
+
+  .light-card {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.03),
+      0 12px 32px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* ─── Custom scrollbar ─── */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* ─── AG Grid — Excel-like styling ─── */
+.ag-theme-alpine {
+  --ag-header-background-color: #f8f9fb;
+  --ag-header-foreground-color: #64748b;
+  --ag-header-height: 32px;
+  --ag-row-height: 28px;
+  --ag-font-size: 13px;
+  --ag-font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ag-cell-horizontal-padding: 8px;
+  --ag-selected-row-background-color: #eff6ff;
+  --ag-range-selection-background-color: rgba(59, 130, 246, 0.08);
+  --ag-range-selection-border-color: #3b82f6;
+  --ag-row-hover-color: #f8fafc;
+  --ag-border-color: #e2e8f0;
+  --ag-header-cell-hover-background-color: #f1f5f9;
+}
+
+/* Cell borders — vertical lines like real Excel */
+.ag-theme-alpine .ag-row .ag-cell {
+  border-right: 1px solid var(--ag-border-color, #e2e8f0) !important;
+  line-height: var(--ag-row-height);
+}
+.ag-theme-alpine .ag-header-row .ag-header-cell {
+  border-right: 1px solid var(--ag-border-color, #e2e8f0) !important;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Row number column */
+.ag-theme-alpine .row-number-cell {
+  background: #f8f9fb !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  user-select: none;
+  border-right: 2px solid #e2e8f0 !important;
+}
+.ag-theme-alpine .row-number-header {
+  background: #f1f5f9 !important;
+  border-right: 2px solid #e2e8f0 !important;
+}
+
+/* Formula cells — subtle blue tint */
+.ag-theme-alpine .formula-cell {
+  color: #1d4ed8 !important;
+}
+
+/* Number cells — right-aligned like Excel */
+.ag-theme-alpine .number-cell {
+  text-align: right !important;
+}
+
+/* Cell editing state */
+.ag-theme-alpine .ag-cell-inline-editing {
+  border: 2px solid #3b82f6 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  background: #fff !important;
+  padding: 0 6px !important;
+}
+
+/* Header — clean look */
+.ag-theme-alpine .ag-header {
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* Alternating rows — very subtle */
+.ag-theme-alpine .ag-row-odd {
+  background-color: #fafbfc;
+}
+
+/* Selected cell highlight */
+.ag-theme-alpine .ag-cell-focus:not(.ag-cell-range-selected) {
+  border: 2px solid #3b82f6 !important;
+  border-radius: 0 !important;
+}
+
+/* Pinned column separator */
+.ag-theme-alpine .ag-pinned-left-header,
+.ag-theme-alpine .ag-pinned-left-cols-container {
+  border-right: 2px solid #e2e8f0 !important;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ─── Markdown message — chat AI responses ─── */
+.markdown-msg table {
+  font-variant-numeric: tabular-nums;
+}
+.markdown-msg table td:first-child {
+  font-weight: 500;
+}
+/* Numeric values in tables — right-align */
+.markdown-msg table td:not(:first-child) {
+  text-align: right;
+}
+/* Striped table rows */
+.markdown-msg table tbody tr:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.3);
+}
+/* Smooth transitions for collapsible blocks */
+.markdown-msg details summary {
+  cursor: pointer;
+  user-select: none;
+}
+/* Border-left for blockquotes */
+.markdown-msg blockquote {
+  border-left-width: 3px;
+}
+/* Code block scrollbar */
+.markdown-msg pre div::-webkit-scrollbar {
+  height: 4px;
+}
+.markdown-msg pre div::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 2px;
+}
+
+/* ─── Ordered list counter for markdown ─── */
+.markdown-msg ol {
+  counter-reset: md-list;
+}
+.markdown-msg ol > li {
+  counter-increment: md-list;
+}
+.markdown-msg ol > li::before {
+  content: counter(md-list) ".";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  font-size: 13px;
+  font-weight: 500;
+  color: #818cf8; /* indigo-400 */
+  font-variant-numeric: tabular-nums;
+}
+/* Remove the dot bullet for ordered lists */
+.markdown-msg ol > li::after {
+  display: none;
+}
+
+/* ─── Dark scrollbar for LLM page ─── */
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

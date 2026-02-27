@@ -1,6 +1,3 @@
-# Root workspace .gitignore
-# Source lives in excelflow/
-
 # Dependencies
 node_modules/
 **/node_modules/
@@ -20,10 +17,10 @@ coverage/
 *.tsbuildinfo
 
 # Runtime/generated files (keep placeholders)
-excelflow/apps/api/uploads/*
-excelflow/apps/api/exports/*
-!excelflow/apps/api/uploads/.gitkeep
-!excelflow/apps/api/exports/.gitkeep
+apps/api/uploads/*
+apps/api/exports/*
+!apps/api/uploads/.gitkeep
+!apps/api/exports/.gitkeep
 
 # Local publish artifacts
 publish-source/
