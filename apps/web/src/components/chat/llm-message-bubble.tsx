@@ -85,7 +85,7 @@ export function LLMMessageBubble({
         {isError && !content ? (
           <p className="text-sm text-red-400/80">Something went wrong generating a response.</p>
         ) : (
-          <MarkdownMessage content={content} />
+          <MarkdownMessage content={content} variant="dark" />
         )}
 
         {isStreaming && (
