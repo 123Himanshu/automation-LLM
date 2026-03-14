@@ -78,7 +78,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
   const d = variant === 'dark';
 
   return (
-    <div className={`markdown-msg text-[14.5px] leading-[1.75] ${d ? 'text-slate-300' : 'text-slate-800'}`}>
+    <div className={`markdown-msg text-[14.5px] leading-[1.75] ${d ? 'text-slate-100' : 'text-slate-900'}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -146,7 +146,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
           th({ children }) {
             return (
               <th className={`px-4 py-2.5 text-left text-[12px] font-semibold border-b whitespace-nowrap ${
-                d ? 'text-slate-300 border-white/[0.08]' : 'text-slate-700 border-slate-200'
+                d ? 'text-slate-100 border-white/[0.08]' : 'text-slate-700 border-slate-200'
               }`}>
                 {children}
               </th>
@@ -155,7 +155,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
           td({ children }) {
             return (
               <td className={`px-4 py-2 text-[13px] border-b whitespace-nowrap ${
-                d ? 'text-slate-400 border-white/[0.04]' : 'text-slate-600 border-slate-100'
+                d ? 'text-slate-200 border-white/[0.04]' : 'text-slate-800 border-slate-100'
               }`}>
                 {children}
               </td>
@@ -167,21 +167,21 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
 
           h1({ children }) {
             return <h1 className={`mt-6 mb-3 text-[18px] font-semibold border-b pb-2 ${
-              d ? 'text-slate-100 border-white/[0.06]' : 'text-slate-900 border-slate-200'
+              d ? 'text-white border-white/[0.06]' : 'text-slate-900 border-slate-200'
             }`}>{children}</h1>;
           },
           h2({ children }) {
-            return <h2 className={`mt-5 mb-2.5 text-[16px] font-semibold ${d ? 'text-slate-100' : 'text-slate-900'}`}>{children}</h2>;
+            return <h2 className={`mt-5 mb-2.5 text-[16px] font-semibold ${d ? 'text-white' : 'text-slate-900'}`}>{children}</h2>;
           },
           h3({ children }) {
-            return <h3 className={`mt-4 mb-2 text-[15px] font-semibold ${d ? 'text-slate-200' : 'text-slate-800'}`}>{children}</h3>;
+            return <h3 className={`mt-4 mb-2 text-[15px] font-semibold ${d ? 'text-white' : 'text-slate-800'}`}>{children}</h3>;
           },
           h4({ children }) {
-            return <h4 className={`mt-3 mb-1.5 text-[14px] font-medium ${d ? 'text-slate-300' : 'text-slate-700'}`}>{children}</h4>;
+            return <h4 className={`mt-3 mb-1.5 text-[14px] font-medium ${d ? 'text-slate-100' : 'text-slate-700'}`}>{children}</h4>;
           },
 
           p({ children }) {
-            return <p className={`my-2.5 leading-[1.75] ${d ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>;
+            return <p className={`my-2.5 leading-[1.75] ${d ? 'text-slate-100' : 'text-slate-900'}`}>{children}</p>;
           },
 
           ul({ children }) {
@@ -193,7 +193,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
           li({ children }) {
             return (
               <li className={`relative pl-6 text-[14.5px] leading-[1.75] before:absolute before:left-0 before:top-[0.6em] before:h-1.5 before:w-1.5 before:rounded-full ${
-                d ? 'text-slate-300 before:bg-indigo-400/50' : 'text-slate-700 before:bg-indigo-500/40'
+                d ? 'text-slate-100 before:bg-indigo-400/50' : 'text-slate-900 before:bg-indigo-500/40'
               }`}>
                 {children}
               </li>
@@ -203,7 +203,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
           blockquote({ children }) {
             return (
               <blockquote className={`my-4 rounded-r-xl border-l-[3px] py-2 pl-4 pr-3 text-[14px] italic ${
-                d ? 'border-indigo-500/40 bg-indigo-500/[0.05] text-slate-400' : 'border-indigo-400/40 bg-indigo-50/50 text-slate-600'
+                d ? 'border-indigo-500/40 bg-indigo-500/[0.05] text-slate-200' : 'border-indigo-400/40 bg-indigo-50/50 text-slate-700'
               }`}>
                 {children}
               </blockquote>
@@ -234,7 +234,7 @@ export const MarkdownMessage = memo(function MarkdownMessage({ content, variant 
           },
 
           em({ children }) {
-            return <em className={`italic ${d ? 'text-slate-400' : 'text-slate-500'}`}>{children}</em>;
+            return <em className={`italic ${d ? 'text-slate-300' : 'text-slate-600'}`}>{children}</em>;
           },
 
           img({ src, alt }) {
